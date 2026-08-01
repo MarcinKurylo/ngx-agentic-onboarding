@@ -1,0 +1,82 @@
+/*
+ * ngx-agentic-onboarding — optional theme.
+ *
+ * Import it AFTER driver.js's stylesheet to get a themeable default look:
+ *   @import 'driver.js/dist/driver.css';
+ *   @import 'ngx-agentic-onboarding/styles/theme.css';
+ *
+ * Every rule consumes a `--ngx-ob-*` CSS variable with a built-in fallback, so
+ * this file IS the default and you customise it by setting variables anywhere
+ * that cascades onto the popover (e.g. :root) — no need to fight specificity:
+ *
+ *   :root {
+ *     --ngx-ob-accent: #e11d48;
+ *     --ngx-ob-radius: 16px;
+ *   }
+ *
+ * Scoping is possible too: everything is under `.driver-popover.ngx-onboarding`,
+ * and per-step classes (OnboardingStep.popoverClass) let you target one step.
+ */
+
+.driver-popover.ngx-onboarding {
+  background: var(--ngx-ob-bg, #ffffff);
+  color: var(--ngx-ob-fg, #111827);
+  border-radius: var(--ngx-ob-radius, 12px);
+  box-shadow: var(--ngx-ob-shadow, 0 20px 60px rgba(0, 0, 0, 0.25));
+  padding: var(--ngx-ob-padding, 1rem 1.25rem);
+  font-family: var(--ngx-ob-font, inherit);
+  max-width: var(--ngx-ob-max-width, 320px);
+}
+
+.driver-popover.ngx-onboarding .driver-popover-title {
+  color: var(--ngx-ob-fg, #111827);
+  font-size: var(--ngx-ob-title-size, 1.05rem);
+  font-weight: var(--ngx-ob-title-weight, 700);
+}
+
+.driver-popover.ngx-onboarding .driver-popover-description {
+  color: var(--ngx-ob-muted, #4b5563);
+  line-height: 1.5;
+}
+
+/* Arrow follows the popover background. */
+.driver-popover.ngx-onboarding .driver-popover-arrow {
+  border-color: var(--ngx-ob-bg, #ffffff);
+}
+
+/* Primary (next / done) button. */
+.driver-popover.ngx-onboarding .driver-popover-next-btn {
+  background: var(--ngx-ob-accent, #4f46e5);
+  color: var(--ngx-ob-accent-fg, #ffffff);
+  border: none;
+  border-radius: var(--ngx-ob-btn-radius, 8px);
+  text-shadow: none;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+}
+.driver-popover.ngx-onboarding .driver-popover-next-btn:hover {
+  filter: brightness(0.94);
+  background: var(--ngx-ob-accent, #4f46e5);
+}
+
+/* Secondary (previous) button. */
+.driver-popover.ngx-onboarding .driver-popover-prev-btn {
+  background: var(--ngx-ob-secondary-bg, transparent);
+  color: var(--ngx-ob-secondary-fg, #4b5563);
+  border: 1px solid var(--ngx-ob-secondary-border, #d1d5db);
+  border-radius: var(--ngx-ob-btn-radius, 8px);
+  text-shadow: none;
+  padding: 0.4rem 0.9rem;
+}
+
+/* Close (×) button. */
+.driver-popover.ngx-onboarding .driver-popover-close-btn {
+  color: var(--ngx-ob-close, #9ca3af);
+}
+.driver-popover.ngx-onboarding .driver-popover-close-btn:hover {
+  color: var(--ngx-ob-fg, #111827);
+}
+
+.driver-popover.ngx-onboarding .driver-popover-progress-text {
+  color: var(--ngx-ob-muted, #4b5563);
+}

@@ -3,6 +3,27 @@
 /* Driver.js overlay styles — required by the DriverJsRenderer. */
 @import 'driver.js/dist/driver.css';
 
+/*
+ * Optional onboarding theme (default look via CSS variables). A published app
+ * would import it by package path:
+ *   @import 'ngx-agentic-onboarding/styles/theme.css';
+ * The demo consumes the library from dist/, so it points there directly.
+ */
+@import '../../../dist/ngx-agentic-onboarding/styles/theme.css';
+
+/* --- Customisation: just override the variables in your own SCSS. --- */
+:root {
+  --ngx-ob-accent: #0ea5e9;
+  --ngx-ob-radius: 16px;
+  --ngx-ob-shadow: 0 18px 50px rgba(2, 132, 199, 0.28);
+}
+
+/* Per-step styling via OnboardingStep.popoverClass (here: the final step). */
+.driver-popover.ngx-onboarding.step-finish {
+  --ngx-ob-accent: #16a34a;
+  text-align: center;
+}
+
 body {
   margin: 0;
   background: #f1f5f9;

@@ -108,6 +108,20 @@ describe('Orchestrator + DriverJsRenderer (integration)', () => {
     expect(primaryButtonText()).toBe('Zakończ');
   });
 
+  it('tags the popover with the base hook class and a per-step class', async () => {
+    addTarget('welcome');
+    orchestrator.start(
+      config([
+        { id: 's0', targetSelector: '#welcome', popoverClass: 'my-step' },
+      ]),
+    );
+    await flush();
+
+    const pop = document.querySelector('.driver-popover');
+    expect(pop?.classList.contains('ngx-onboarding')).toBeTrue();
+    expect(pop?.classList.contains('my-step')).toBeTrue();
+  });
+
   it('hides the primary button while a step waits for a business event', async () => {
     addTarget('create');
     orchestrator.start(

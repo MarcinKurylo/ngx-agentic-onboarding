@@ -71,6 +71,7 @@ export const appOnboarding: OnboardingConfig = {
       title: 'Gotowe! 🎉',
       content: 'Cały przepływ — dropdown, loadery, modal i HTTP — obsłużony deklaratywnie.',
       placement: 'center',
+      popoverClass: 'step-finish',
     },
   ],
 };

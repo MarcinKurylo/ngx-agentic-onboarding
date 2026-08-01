@@ -1,63 +1,135 @@
-# NgxAgenticOnboarding
+# ngx-agentic-onboarding
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.0.
+Lightweight, **config-driven** and **event-driven** onboarding / product-tour
+engine for Angular 19+. Define the whole tour in one typed object; the engine
+coordinates asynchronous transitions — waiting for business events, driving the
+router, and waiting for elements to appear after loaders — and paints the
+overlay with a slimmed [Driver.js](https://driverjs.com). No tour code in your
+components.
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Install
 
 ```bash
-ng generate --help
+npm i ngx-agentic-onboarding driver.js
 ```
 
-## Building
+## Setup
 
-To build the library, run:
+```ts
+// app.config.ts
+import { provideRouter } from '@angular/router';
+import { provideOnboarding } from 'ngx-agentic-onboarding';
 
-```bash
-ng build ngx-agentic-onboarding
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes),
+    provideOnboarding({ nextLabel: 'Next', overlayOpacity: 0.6 }),
+  ],
+};
 ```
 
-This command will compile your project, and the build artifacts will be placed in the `dist/` directory.
+Import the stylesheets once (global styles):
 
-### Publishing the Library
-
-Once the project is built, you can publish your library by following these steps:
-
-1. Navigate to the `dist` directory:
-   ```bash
-   cd dist/ngx-agentic-onboarding
-   ```
-
-2. Run the `npm publish` command to publish your library to the npm registry:
-   ```bash
-   npm publish
-   ```
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
+```scss
+@import 'driver.js/dist/driver.css';
+@import 'ngx-agentic-onboarding/styles/theme.css'; /* optional themeable default */
 ```
 
-## Running end-to-end tests
+## Define a tour
 
-For end-to-end (e2e) testing, run:
+```ts
+import { OnboardingConfig } from 'ngx-agentic-onboarding';
 
-```bash
-ng e2e
+export const appOnboarding: OnboardingConfig = {
+  version: '1.0.0',
+  id: 'main',
+  steps: [
+    { id: 'welcome', targetSelector: '#welcome', title: 'Hi!' },
+    {
+      id: 'create',
+      targetSelector: '#new-project',
+      title: 'Create a project',
+      waitForEvent: 'PROJECT_CREATED', // pauses until your app emits it
+    },
+    {
+      id: 'stats',
+      targetSelector: '#chart',
+      navigateToRoute: '/dashboard', // routes, then waits for #chart to appear
+    },
+  ],
+};
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Start it, and emit business events from anywhere — the engine is listening:
 
-## Additional Resources
+```ts
+export class AppComponent {
+  private readonly orchestrator = inject(OnboardingOrchestrator);
+  private readonly bus = inject(OnboardingEventBus);
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+  start() { this.orchestrator.start(appOnboarding); }
+
+  // elsewhere, when the real action happens:
+  onProjectCreated(p: Project) { this.bus.emit('PROJECT_CREATED', p); }
+}
+```
+
+### Key step options
+
+| Option | Effect |
+| --- | --- |
+| `targetSelector` | Element to highlight (omit for a centered step). |
+| `waitForEvent` | Pause until this event fires on the bus; hides "Next". |
+| `eventFilter` | Only advance when the event payload matches. |
+| `navigateToRoute` | Navigate, then wait for the target to appear. |
+| `delayMs` / `waitForSelectorTimeoutMs` | Timing for async DOM. |
+| `beforeStep` / `afterStep` | Awaited lifecycle hooks. |
+| `popoverClass` | Extra CSS class for theming this step. |
+
+## Persistence
+
+Completing or dismissing a tour is remembered (localStorage, keyed by
+`id`+`version`) so it won't reappear:
+
+```ts
+orchestrator.startIfNotCompleted(appOnboarding); // start unless already seen
+orchestrator.autoStart(appOnboarding);           // honours config.startImmediately
+orchestrator.reset(appOnboarding);               // show it again
+```
+
+Set `persist: false` on the config to opt out. Swap the backend by providing
+`ONBOARDING_STORAGE`.
+
+## Theming
+
+You control the look entirely from your own SCSS — the library ships a default,
+and you override it. Every popover carries a stable `ngx-onboarding` class.
+
+**Option A — override CSS variables** (with `theme.css` imported):
+
+```scss
+:root {
+  --ngx-ob-accent: #e11d48;   /* primary button */
+  --ngx-ob-radius: 16px;
+  --ngx-ob-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+  /* also: --ngx-ob-bg, --ngx-ob-fg, --ngx-ob-muted, --ngx-ob-accent-fg,
+     --ngx-ob-secondary-bg/-fg/-border, --ngx-ob-btn-radius, --ngx-ob-font … */
+}
+```
+
+**Option B — target the classes directly** (skip `theme.css` for full control):
+
+```scss
+.driver-popover.ngx-onboarding {
+  background: #0b1020;
+  color: #e5e7eb;
+}
+.driver-popover.ngx-onboarding.step-finish .driver-popover-title { color: #16a34a; }
+```
+
+Per-step styling: set `popoverClass: 'step-finish'` on a step and scope your rules
+to it (as above).
+
+## License
+
+MIT

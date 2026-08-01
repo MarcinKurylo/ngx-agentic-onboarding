@@ -64,6 +64,13 @@ export interface OnboardingStep {
   /** Where to place the popover relative to the target. Defaults to `auto`. */
   readonly placement?: OnboardingStepPlacement;
 
+  /**
+   * Extra CSS class(es) applied to this step's popover, on top of the global
+   * base class (`ngx-onboarding`) and any renderer-level class. Use it to theme
+   * individual steps from your own SCSS.
+   */
+  readonly popoverClass?: string;
+
   // --- Asynchronous / event-driven control flags -------------------------
 
   /**

@@ -15,5 +15,11 @@
     "driver.js": "^1.8.0",
     "tslib": "^2.3.0"
   },
+  "exports": {
+    "./styles/theme.css": {
+      "style": "./styles/theme.css",
+      "default": "./styles/theme.css"
+    }
+  },
   "sideEffects": false
 }

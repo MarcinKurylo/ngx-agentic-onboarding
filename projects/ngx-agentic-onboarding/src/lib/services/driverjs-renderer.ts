@@ -48,6 +48,13 @@ export interface DriverJsRendererConfig {
 export const DRIVERJS_RENDERER_CONFIG =
   new InjectionToken<DriverJsRendererConfig>('DRIVERJS_RENDERER_CONFIG');
 
+/**
+ * Stable CSS class applied to every popover the renderer paints. Use it as a
+ * theming hook, e.g. `.driver-popover.ngx-onboarding { … }`, or override the
+ * `--ngx-ob-*` variables consumed by the optional theme stylesheet.
+ */
+export const ONBOARDING_POPOVER_CLASS = 'ngx-onboarding';
+
 const DEFAULTS: Required<DriverJsRendererConfig> = {
   animate: true,
   overlayColor: 'rgb(0, 0, 0)',
@@ -113,9 +120,20 @@ export class DriverJsRenderer implements OnboardingRenderer {
         nextBtnText: isLast ? this.config.doneLabel : this.config.nextLabel,
         prevBtnText: this.config.prevLabel,
         doneBtnText: this.config.doneLabel,
-        popoverClass: this.config.popoverClass || undefined,
+        popoverClass: this.popoverClassFor(step),
       },
     });
+  }
+
+  /**
+   * Composes the popover's CSS classes: a stable base hook (`ngx-onboarding`)
+   * that every popover carries, plus any renderer-level and per-step classes.
+   * Gives host apps a reliable, low-specificity selector to theme from SCSS.
+   */
+  private popoverClassFor(step: OnboardingStep): string {
+    return [ONBOARDING_POPOVER_CLASS, this.config.popoverClass, step.popoverClass]
+      .filter(Boolean)
+      .join(' ');
   }
 
   hide(): void {
