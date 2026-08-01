@@ -24,9 +24,9 @@ jobs:
       - name: Build library
         run: npx ng build ngx-agentic-onboarding
 
-      - name: Test library (unit + integration)
+      - name: Test library (unit + integration) with coverage thresholds
         run: >-
-          npx ng test ngx-agentic-onboarding --watch=false
+          npx ng test ngx-agentic-onboarding --watch=false --code-coverage
           --browsers=ChromeHeadlessNoSandbox --karma-config karma.conf.js
 
       - name: Test demo

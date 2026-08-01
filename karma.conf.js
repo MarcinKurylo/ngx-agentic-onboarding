@@ -27,6 +27,17 @@ module.exports = function (config) {
         { type: 'text-summary' },
         { type: 'lcovonly' },
       ],
+      // Fail the run if coverage regresses below these floors (a small buffer
+      // under the current numbers). Enforced only with --code-coverage.
+      check: {
+        emitWarning: false,
+        global: {
+          statements: 80,
+          branches: 62,
+          functions: 78,
+          lines: 82,
+        },
+      },
     },
     reporters: ['progress', 'kjhtml'],
     browsers: ['Chrome'],
