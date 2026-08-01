@@ -15,6 +15,21 @@ import {
   OnboardingRenderControls,
   OnboardingRenderer,
 } from './onboarding-renderer';
+import { ONBOARDING_STORAGE, OnboardingStorage } from './onboarding-storage';
+
+/** In-memory storage double so tests never touch real localStorage. */
+class FakeStorage implements OnboardingStorage {
+  readonly seen = new Set<string>();
+  isCompleted(key: string): boolean {
+    return this.seen.has(key);
+  }
+  markCompleted(key: string): void {
+    this.seen.add(key);
+  }
+  clear(key: string): void {
+    this.seen.delete(key);
+  }
+}
 
 /** Renderer double that records every show/hide for assertions. */
 class FakeRenderer implements OnboardingRenderer {
@@ -57,7 +72,9 @@ describe('OnboardingOrchestrator', () => {
   let bus: OnboardingEventBus;
   let renderer: FakeRenderer;
   let router: { navigateByUrl: jasmine.Spy };
+  let storage: FakeStorage;
   const createdEls: Element[] = [];
+  const KEY = 'ngx-onboarding:test:1.0.0';
 
   function addTarget(id: string): Element {
     const el = document.createElement('div');
@@ -75,6 +92,7 @@ describe('OnboardingOrchestrator', () => {
 
   beforeEach(() => {
     renderer = new FakeRenderer();
+    storage = new FakeStorage();
     router = { navigateByUrl: jasmine.createSpy('navigateByUrl').and.resolveTo(true) };
 
     TestBed.configureTestingModule({
@@ -82,6 +100,7 @@ describe('OnboardingOrchestrator', () => {
         OnboardingOrchestrator,
         OnboardingEventBus,
         { provide: ONBOARDING_RENDERER, useValue: renderer },
+        { provide: ONBOARDING_STORAGE, useValue: storage },
         { provide: Router, useValue: router },
       ],
     });
@@ -270,6 +289,77 @@ describe('OnboardingOrchestrator', () => {
     expect(seen).toContain(OnboardingLifecycleEvent.StepShown);
   });
 
+  describe('persistence', () => {
+    it('marks the tour as seen on complete()', async () => {
+      orchestrator.start(config([{ id: 's0' }]));
+      await flush();
+      orchestrator.next(); // completes the single-step tour
+      await flush();
+
+      expect(storage.isCompleted(KEY)).toBeTrue();
+    });
+
+    it('marks the tour as seen on skip()', async () => {
+      orchestrator.start(config([{ id: 's0' }, { id: 's1' }]));
+      await flush();
+      orchestrator.skip();
+
+      expect(storage.isCompleted(KEY)).toBeTrue();
+    });
+
+    it('does not persist when persist:false', async () => {
+      orchestrator.start({
+        version: '1.0.0',
+        id: 'test',
+        persist: false,
+        steps: [{ id: 's0' }],
+      });
+      await flush();
+      orchestrator.next();
+      await flush();
+
+      expect(storage.isCompleted(KEY)).toBeFalse();
+    });
+
+    it('startIfNotCompleted starts when unseen and refuses when seen', async () => {
+      const cfg = config([{ id: 's0' }]);
+
+      expect(orchestrator.startIfNotCompleted(cfg)).toBeTrue();
+      await flush();
+      expect(orchestrator.isActive()).toBeTrue();
+
+      orchestrator.skip(); // marks seen
+      expect(orchestrator.startIfNotCompleted(cfg)).toBeFalse();
+      expect(orchestrator.isActive()).toBeFalse();
+    });
+
+    it('autoStart only starts when startImmediately is set (and unseen)', async () => {
+      // No flag -> no auto start.
+      expect(orchestrator.autoStart(config([{ id: 's0' }]))).toBeFalse();
+
+      // Flag set + unseen -> starts.
+      const auto: OnboardingConfig = {
+        version: '1.0.0',
+        id: 'test',
+        startImmediately: true,
+        steps: [{ id: 's0' }],
+      };
+      expect(orchestrator.autoStart(auto)).toBeTrue();
+      await flush();
+
+      // Flag set but already seen -> refuses.
+      storage.markCompleted(KEY);
+      expect(orchestrator.autoStart(auto)).toBeFalse();
+    });
+
+    it('reset() forgets a persisted completion', () => {
+      storage.markCompleted(KEY);
+      orchestrator.reset(config([{ id: 's0' }]));
+
+      expect(storage.isCompleted(KEY)).toBeFalse();
+    });
+  });
+
   describe('without a DOM (SSR)', () => {
     beforeEach(() => {
       TestBed.resetTestingModule();
@@ -278,6 +368,7 @@ describe('OnboardingOrchestrator', () => {
           OnboardingOrchestrator,
           OnboardingEventBus,
           { provide: ONBOARDING_RENDERER, useValue: renderer },
+          { provide: ONBOARDING_STORAGE, useValue: storage },
           { provide: Router, useValue: router },
           { provide: DOCUMENT, useValue: {} }, // no querySelector
         ],

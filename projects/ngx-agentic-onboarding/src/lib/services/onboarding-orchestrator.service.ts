@@ -21,6 +21,7 @@ import {
   ONBOARDING_RENDERER,
   OnboardingRenderControls,
 } from './onboarding-renderer';
+import { ONBOARDING_STORAGE } from './onboarding-storage';
 
 /** Lifecycle status of the orchestrator's state machine. */
 export type OnboardingStatus =
@@ -47,6 +48,7 @@ export class OnboardingOrchestrator {
   private readonly document = inject(DOCUMENT);
   private readonly router = inject(Router, { optional: true });
   private readonly renderer = inject(ONBOARDING_RENDERER, { optional: true });
+  private readonly storage = inject(ONBOARDING_STORAGE);
   private readonly destroyRef = inject(DestroyRef);
 
   /**
@@ -152,7 +154,7 @@ export class OnboardingOrchestrator {
     }
   }
 
-  /** Skip/abort the tour before completion. */
+  /** Skip/abort the tour before completion. Counts as "seen" for persistence. */
   skip(): void {
     if (!this.isActive()) {
       return;
@@ -161,7 +163,51 @@ export class OnboardingOrchestrator {
       id: this.config?.id,
       atIndex: this._index(),
     });
+    this.persistSeen();
     this.teardown('skipped');
+  }
+
+  /**
+   * Start the tour unless it has already been completed/dismissed (per
+   * {@link OnboardingStorage}). Returns `true` if it actually started.
+   *
+   * @param config Optional config to load first.
+   */
+  startIfNotCompleted(config?: OnboardingConfig): boolean {
+    if (config) {
+      this.load(config);
+    }
+    if (this.hasCompleted()) {
+      return false;
+    }
+    this.start();
+    return true;
+  }
+
+  /**
+   * Honour {@link OnboardingConfig.startImmediately}: starts the tour (guarded
+   * by persistence) only when the config opts into auto-starting. Call this
+   * once the host view/router is ready. Returns `true` if it started.
+   */
+  autoStart(config?: OnboardingConfig): boolean {
+    if (config) {
+      this.load(config);
+    }
+    return this.config?.startImmediately ? this.startIfNotCompleted() : false;
+  }
+
+  /** Whether the (optionally given) tour has been persisted as seen. */
+  hasCompleted(config?: OnboardingConfig): boolean {
+    const key = this.storageKey(config ?? this.config);
+    return key ? this.storage.isCompleted(key) : false;
+  }
+
+  /** Forget a tour's persisted completion so it can be shown again. */
+  reset(config?: OnboardingConfig): void {
+    const key = this.storageKey(config ?? this.config);
+    if (key) {
+      this.storage.clear(key);
+    }
   }
 
   /**
@@ -378,7 +424,24 @@ export class OnboardingOrchestrator {
     this.bus.emit(OnboardingLifecycleEvent.TourCompleted, {
       id: this.config?.id,
     });
+    this.persistSeen();
     this.teardown('completed');
+  }
+
+  /** Builds the persistence key for a config, or null when it can't/shouldn't persist. */
+  private storageKey(cfg: OnboardingConfig | null): string | null {
+    if (!cfg?.id || cfg.persist === false) {
+      return null;
+    }
+    return `ngx-onboarding:${cfg.id}:${cfg.version}`;
+  }
+
+  /** Records the active tour as seen, if persistence applies to it. */
+  private persistSeen(): void {
+    const key = this.storageKey(this.config);
+    if (key) {
+      this.storage.markCompleted(key);
+    }
   }
 
   private handleMissingTarget(step: OnboardingStep, index: number): void {

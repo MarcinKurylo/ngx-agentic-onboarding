@@ -5,6 +5,14 @@ import { OnboardingConfig, OnboardingStep } from './models';
 import { provideOnboarding } from './provide-onboarding';
 import { OnboardingEventBus } from './services/onboarding-event-bus.service';
 import { OnboardingOrchestrator } from './services/onboarding-orchestrator.service';
+import { ONBOARDING_STORAGE } from './services/onboarding-storage';
+
+/** Keeps completion out of real localStorage during these tests. */
+const noopStorage = {
+  isCompleted: () => false,
+  markCompleted: () => undefined,
+  clear: () => undefined,
+};
 
 /**
  * Integration layer: the orchestrator wired to the REAL Driver.js renderer,
@@ -61,6 +69,7 @@ describe('Orchestrator + DriverJsRenderer (integration)', () => {
           nextLabel: 'Dalej',
           doneLabel: 'Zakończ',
         }),
+        { provide: ONBOARDING_STORAGE, useValue: noopStorage },
       ],
     });
     orchestrator = TestBed.inject(OnboardingOrchestrator);

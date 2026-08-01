@@ -70,10 +70,18 @@ export interface OnboardingConfig {
   readonly steps: readonly OnboardingStep[];
 
   /**
-   * If `true`, the tour starts automatically once the orchestrator is wired up
-   * (e.g. on app bootstrap). Defaults to `false` — start it explicitly instead.
+   * Hint that this tour should auto-start (guarded by persistence) rather than
+   * waiting for an explicit trigger. Honoured by
+   * {@link OnboardingOrchestrator.autoStart}. Defaults to `false`.
    */
   readonly startImmediately?: boolean;
+
+  /**
+   * Whether completing or dismissing the tour is remembered (via
+   * {@link OnboardingStorage}) so it is not shown again. Requires {@link id}.
+   * Defaults to `true`.
+   */
+  readonly persist?: boolean;
 
   /** Tour-wide options and default labels/timings. */
   readonly options?: OnboardingOptions;

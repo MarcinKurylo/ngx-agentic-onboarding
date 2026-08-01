@@ -47,3 +47,31 @@ test('drives welcome -> create (waits for event) -> dashboard', async ({
   await expect(popover).toHaveCount(0);
   await expect(status).toContainText('completed');
 });
+
+test('persists completion: dismissed tour does not reopen until reset', async ({
+  page,
+}) => {
+  const popover = page.locator('.driver-popover');
+  const status = page.locator('.status');
+  const guarded = page.getByRole('button', { name: 'Start jeśli nieukończony' });
+
+  await page.goto('/');
+  await expect(status).toContainText('ukończony: nie');
+
+  // Start then dismiss via the popover close button — counts as "seen".
+  await page.getByRole('button', { name: /Uruchom samouczek/ }).click();
+  await expect(popover).toBeVisible();
+  await page.locator('.driver-popover-close-btn').click();
+  await expect(popover).toHaveCount(0);
+  await expect(status).toContainText('ukończony: tak');
+
+  // Guarded start must NOT reopen a seen tour.
+  await guarded.click();
+  await expect(popover).toHaveCount(0);
+
+  // After reset, the guarded start shows it again.
+  await page.getByRole('button', { name: 'Resetuj postęp' }).click();
+  await expect(status).toContainText('ukończony: nie');
+  await guarded.click();
+  await expect(popover).toBeVisible();
+});
