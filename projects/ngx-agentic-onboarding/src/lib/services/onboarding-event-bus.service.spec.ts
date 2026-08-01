@@ -1,3 +1,4 @@
+/// <reference types="jasmine" />
 import { TestBed } from '@angular/core/testing';
 import { OnboardingEvent } from '../models/onboarding-event.model';
 import { OnboardingEventBus } from './onboarding-event-bus.service';
