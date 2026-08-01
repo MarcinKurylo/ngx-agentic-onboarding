@@ -427,7 +427,17 @@ export class OnboardingOrchestrator {
         if (this.isStale(token)) return;
         if (step.eventFilter && !step.eventFilter(payload)) return;
         this.cancelPendingWait();
-        this.next();
+        // Defer one macrotask before advancing. The business event almost
+        // always coincides with a host state change (a new `@for` row, a
+        // panel opening) whose DOM has NOT been rendered yet inside this
+        // synchronous emit. Resolving the next step's target now would match a
+        // stale DOM — e.g. a floating `[$last]` marker still sitting on the
+        // previous row, so the highlight lands one element behind. Yielding
+        // lets the framework flush its change detection first.
+        setTimeout(() => {
+          if (this.isStale(token)) return;
+          this.next();
+        }, 0);
       });
 
     // Never strand the user on an event that never fires.

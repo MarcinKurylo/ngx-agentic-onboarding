@@ -56,6 +56,15 @@ over guessing.
      "add" appends a row), don't blindly anchor to `$first`/`$last` — anchor to the
      row the action actually created (often the newly appended one), so you
      highlight what the user just did, not a stale position.
+   - **Multi-control steps: anchor to the container, not one control.** In
+     highlight mode everything *outside* the cutout is `pointer-events:none`, so
+     only the highlighted element stays clickable. If a step's action needs more
+     than one control — type in a field **and** press a submit button, pick from a
+     group, tick then confirm — anchoring to a single control leaves the others
+     dead (e.g. the user can submit with Enter but a click on the button does
+     nothing). Anchor to the wrapping element (the form, the toolbar, the row) so
+     every control the step asks for stays live. Add an `id` to that container if
+     it lacks one.
    - A step with **no** `targetSelector` renders as a centered modal — right for
      welcome/finish screens (`placement: 'center'`).
 

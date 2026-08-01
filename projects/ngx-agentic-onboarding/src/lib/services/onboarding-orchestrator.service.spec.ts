@@ -187,6 +187,23 @@ describe('OnboardingOrchestrator', () => {
       expect(orchestrator.status()).toBe('running');
     });
 
+    it('defers the advance a macrotask so the host can flush its render', async () => {
+      orchestrator.start(
+        config([{ id: 's0', waitForEvent: 'X' }, { id: 's1' }]),
+      );
+      await flush();
+      expect(orchestrator.status()).toBe('waiting');
+
+      // Synchronously after the event, we must NOT have advanced yet: the DOM
+      // change the event triggers hasn't rendered, so resolving s1's target now
+      // could match a stale element.
+      bus.emit('X');
+      expect(orchestrator.currentIndex()).toBe(0);
+
+      await flush();
+      expect(orchestrator.currentIndex()).toBe(1);
+    });
+
     it('respects eventFilter and ignores non-matching payloads', async () => {
       orchestrator.start(
         config([
