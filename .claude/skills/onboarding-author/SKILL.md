@@ -14,8 +14,8 @@ description: >-
 
 You are turning an existing Angular app into a working onboarding tour **from its
 own code**. The whole tour is one typed `OnboardingConfig` object — no tour logic
-in components. Your job is to read the app, infer the flow, and emit that config
-plus the minimal wiring, then hand the user a draft to review.
+in components. Your job is to read the app, infer the flow, write that config, and
+**apply the wiring yourself** — then report what you changed and what's worth a look.
 
 This is **assisted authoring, not magic.** You infer statically; timing and
 dynamic DOM are confirmed by the developer at runtime. Say so, and flag every
@@ -45,10 +45,17 @@ over guessing.
 3. **Find anchors (`targetSelector`).** Search templates for stable ids
    (`id="…"`) or `data-*` hooks on the elements each step should highlight. Prefer
    an existing `id`; a class is a fallback but warn it's brittle.
-   - If the element you want is rendered **conditionally** (`@if`, `*ngIf`) or has
-     no stable hook, **do not invent one silently** — tell the user and propose
-     adding `id="…"` (or `data-onboarding="…"`) to that element, showing the exact
-     line. A selector that isn't in the DOM will just time out.
+   - If the element has no stable hook, **add one yourself** — an `id="…"` (or
+     `data-onboarding="…"`) on that element — rather than anchoring to a selector
+     that isn't there (it would just time out). Conditionally-rendered elements
+     (`@if`, `*ngIf`) are fine as targets *as long as they carry an id*; the engine
+     waits for them to appear. Only ask the user when the *choice* of anchor is
+     genuinely ambiguous.
+   - **Lists (`@for`/`*ngFor`): anchor by identity, not position.** If a step
+     targets an item in a list that an *earlier* step's action mutates (e.g. an
+     "add" appends a row), don't blindly anchor to `$first`/`$last` — anchor to the
+     row the action actually created (often the newly appended one), so you
+     highlight what the user just did, not a stale position.
    - A step with **no** `targetSelector` renders as a centered modal — right for
      welcome/finish screens (`placement: 'center'`).
 
@@ -58,9 +65,11 @@ over guessing.
    "Next" button is hidden — the user must do the thing.
    - If the action carries data and the step should only advance for a specific
      one, add `eventFilter: (p) => …`.
-   - If the app does **not** yet emit an event you need, don't fabricate a
-     selector-click workaround — tell the user which `bus.emit('…')` to add and
-     where (right after the domain action resolves, not before).
+   - If the app does **not** yet emit an event you need, **add the `bus.emit('…')`
+     yourself** — inject `OnboardingEventBus`, emit right after the domain action
+     resolves (not before), and use the *exact* same name as the step's
+     `waitForEvent`. This is a mechanical edit; just make it. Only ask the user when
+     *which* action should gate the step is genuinely unclear.
    - Always pair a `waitForEvent` with a safety timeout (see resilience below) so
      a user is never stranded on an event that never fires.
 
@@ -76,9 +85,17 @@ over guessing.
    continues in the direction of travel. Fail-open: if the predicate throws, the
    step is shown.
 
-7. **Emit the config + wiring.** Produce `onboarding.config.ts` and the
-   `provideOnboarding()` call (see Output). List every `id`/`bus.emit` you asked
-   the user to add, as a checklist.
+7. **Write the config and apply the wiring — don't hand it back as homework.**
+   Create `onboarding.config.ts` and *make* the mechanical edits yourself:
+   `provideOnboarding()`, the style imports, the `id`/`data-*` hooks, the
+   `bus.emit(…)` calls, and a trigger (see Output). Reserve the closing summary for
+   (a) what you changed in the user's code and (b) genuine decisions/assumptions to
+   eyeball — never a to-do list of edits you could have made.
+
+8. **Build it.** Run the app's build (`ng build` / `npm run build`) and fix what it
+   flags. It won't prove events fire, but it catches import/typo breakage — closing
+   the loop is part of the job, not a hope. Then tell the user what to click to see
+   it live.
 
 ## The schema (authoritative)
 
@@ -128,23 +145,40 @@ interface OnboardingOptions {       // tour-wide timing/behaviour + defaults
   abortOnMissingTarget?: boolean;   // default false (error + stop, don't crash)
   waitForEventTimeoutMs?: number;   // default 0 (forever)
   onWaitTimeout?: 'reveal'|'advance'|'skip';  // default 'reveal'
+  // ⚠️ Typed here but the Driver renderer IGNORES them — dead config in `options`.
+  // Set labels + closeOnBackdropClick in provideOnboarding() instead (see below).
+  nextLabel?: string; prevLabel?: string; skipLabel?: string; doneLabel?: string;
+  closeOnBackdropClick?: boolean;
 }
 ```
 
-### Resilience defaults to apply
+### Resilience — the event advances, the timeout only rescues
 
-- Give event-gated tours a budget: set `options.waitForEventTimeoutMs` (e.g.
-  8000) with `onWaitTimeout: 'reveal'` so a missing event reveals "Next" instead
-  of hanging. Override per step with `waitForEventTimeoutMs`.
+- **The business event is the advancement mechanism — always.** Design steps to
+  move on when the real thing happens (step 4). Never use a timer to pace a tour
+  along; if you catch yourself relying on the timeout to advance, the event wiring
+  is wrong.
+- **The timeout is a safety net, not a plan.** Its only job is to stop a user being
+  stranded forever when an event *doesn't* fire (mis-wired name, an action the user
+  can't/won't do, element gone). Prefer `onWaitTimeout: 'reveal'` — it just surfaces
+  "Next" and loses nothing. Reach for `'advance'`/`'skip'` only as a deliberate last
+  resort, never the default flow.
+- **Set it generously — it should almost never fire.** A too-short budget with
+  `'reveal'` looks exactly like a hang: "Next" pops up before the user finished,
+  masking a *missing* emit as "slow UI". Floor it above the real action time (click
+  ~10–15 s, type-then-submit ~40–60 s, plus network) and err long. First make sure
+  the event is actually wired — a good timeout never excuses a bad emit.
 - The engine already recovers a highlighted target that re-renders away, and
   restores the route when stepping **back** to a step shown on an earlier route.
   You don't configure these — just don't fight them with manual timers.
 
-### Labels & look — NOT in the config
+### Labels & look — set in provideOnboarding(), not the config
 
-Button labels and overlay styling live in the renderer, passed to
-`provideOnboarding()`, **not** in `config.options`. Do not put `nextLabel` etc.
-into a step or into `options` — it is ignored there.
+Button labels and overlay styling belong in the renderer config passed to
+`provideOnboarding()`. The trap: `nextLabel`/`prevLabel`/`skipLabel`/`doneLabel`
+and `closeOnBackdropClick` are **also typed on `OnboardingOptions`**, so putting
+them in `config.options` compiles cleanly and then **silently does nothing** — the
+Driver renderer never reads them there. Always set them in `provideOnboarding()`.
 
 ```ts
 // app.config.ts
@@ -178,18 +212,26 @@ export const appOnboarding: OnboardingConfig = {
 };
 ```
 
-**2. Wiring** — only what's missing:
+**2. Wiring** — apply these yourself where missing:
 
-- `provideOnboarding({ … })` in `app.config.ts` (with `driver.js/dist/driver.css`
-  imported once in global styles), if not already present.
-- A trigger: inject `OnboardingOrchestrator` and call `start(appOnboarding)` /
-  `startIfNotCompleted(appOnboarding)` / `autoStart(appOnboarding)`.
-- Reminders for every `bus.emit('EVENT', payload?)` the config's `waitForEvent`
-  steps depend on — emitted from the injected `OnboardingEventBus` **after** the
-  real action resolves.
+- `provideOnboarding({ … })` in `app.config.ts`. Import the stylesheets too:
+  `driver.js/dist/driver.css` and (optional) `ngx-agentic-onboarding/styles/theme.css`.
+  In an Angular app the reliable place is the **`styles` array in `angular.json`**;
+  a `@import` in `styles.scss` also works but is easier to get wrong — verify it
+  actually loaded (the popover renders unstyled if it didn't).
+- The `bus.emit('EVENT', payload?)` calls every `waitForEvent` step depends on —
+  from the injected `OnboardingEventBus`, **after** the real action resolves, names
+  matching the config exactly.
+- A trigger. For a first-run tour prefer `autoStart(cfg)` — but it only fires when
+  the config sets **`startImmediately: true`** *and* the tour isn't already
+  persisted as seen. Since completion is remembered (localStorage), **also add a
+  manual replay** (a small button calling `reset(cfg)` then `start(cfg)`), or set
+  `persist: false` until the tour is accepted — otherwise it runs once per browser
+  profile and you can't re-check it while iterating.
 
-Finish with a **checklist** of edits the user must make in their own code (ids to
-add, events to emit), separated from the config you generated.
+Close by reporting **what you changed in the user's code** and any **decisions or
+assumptions worth eyeballing** (timing, conditional targets) — not a to-do list of
+mechanical edits, which you should already have made.
 
 ## Honesty & quality bar
 
@@ -197,7 +239,10 @@ add, events to emit), separated from the config you generated.
   propose the exact edit; don't paper over it.
 - Keep tours short and linear; branch with `enabled`, not by forking configs.
 - Prefer stable `id`/`data-*` over classes; call out anything brittle.
-- Every `waitForEvent` gets a timeout. Every cross-route step gets
-  `navigateToRoute`. Centered steps get `placement: 'center'` and no selector.
+- Advance on the event; keep a generous `reveal` timeout only as a safety net,
+  never as pacing. Every cross-route step gets `navigateToRoute`. Centered steps
+  get `placement: 'center'` and no selector.
+- Close the loop: build it (step 8) and give the user a way to replay the tour;
+  never rely on a one-shot auto-start you can't trigger again.
 - State plainly that the result is a draft to run and eyeball, especially for
   timing and conditionally-rendered targets.
