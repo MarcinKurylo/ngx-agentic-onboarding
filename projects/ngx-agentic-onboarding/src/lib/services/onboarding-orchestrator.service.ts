@@ -1,0 +1,411 @@
+import { DOCUMENT } from '@angular/common';
+import {
+  computed,
+  DestroyRef,
+  inject,
+  Injectable,
+  signal,
+} from '@angular/core';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+
+import {
+  DEFAULT_ONBOARDING_OPTIONS,
+  OnboardingConfig,
+  ResolvedOnboardingOptions,
+} from '../models/onboarding-config.model';
+import { OnboardingLifecycleEvent } from '../models/onboarding-event.model';
+import { OnboardingStep } from '../models/onboarding-step.model';
+import { OnboardingEventBus } from './onboarding-event-bus.service';
+import {
+  ONBOARDING_RENDERER,
+  OnboardingRenderControls,
+} from './onboarding-renderer';
+
+/** Lifecycle status of the orchestrator's state machine. */
+export type OnboardingStatus =
+  | 'idle'
+  | 'running'
+  | 'waiting'
+  | 'completed'
+  | 'skipped';
+
+/**
+ * The steering engine — pillar three of the architecture.
+ *
+ * It owns the tour state machine and coordinates *asynchronous* transitions:
+ * running lifecycle hooks, driving the router, waiting for the target selector
+ * to appear in the DOM, and — crucially — pausing on {@link OnboardingStep.waitForEvent}
+ * until the host app emits the matching business event on the
+ * {@link OnboardingEventBus}. Every asynchronous stage is cancellable and
+ * guarded so a mid-flight navigation or a missing element can never crash the
+ * host view.
+ */
+@Injectable({ providedIn: 'root' })
+export class OnboardingOrchestrator {
+  private readonly bus = inject(OnboardingEventBus);
+  private readonly document = inject(DOCUMENT);
+  private readonly router = inject(Router, { optional: true });
+  private readonly renderer = inject(ONBOARDING_RENDERER, { optional: true });
+  private readonly destroyRef = inject(DestroyRef);
+
+  private config: OnboardingConfig | null = null;
+  private options: ResolvedOnboardingOptions = DEFAULT_ONBOARDING_OPTIONS;
+
+  /**
+   * Monotonic token identifying the in-flight transition. Every `await` in the
+   * pipeline re-checks it; if it has moved on, the stale transition bails out.
+   */
+  private transitionToken = 0;
+
+  /** Active subscription waiting on a step's business event, if any. */
+  private waitSub: Subscription | null = null;
+
+  // --- Reactive state ----------------------------------------------------
+
+  private readonly _index = signal(-1);
+  private readonly _status = signal<OnboardingStatus>('idle');
+
+  /** Zero-based index of the active step (`-1` when idle). */
+  readonly currentIndex = this._index.asReadonly();
+
+  /** Current lifecycle status of the engine. */
+  readonly status = this._status.asReadonly();
+
+  /** The currently active step, or `null` when idle. */
+  readonly currentStep = computed<OnboardingStep | null>(() => {
+    const steps = this.config?.steps;
+    const i = this._index();
+    return steps && i >= 0 && i < steps.length ? steps[i] : null;
+  });
+
+  /** Total number of steps in the loaded tour. */
+  readonly totalSteps = computed(() => this.config?.steps.length ?? 0);
+
+  /** Whether a tour is currently running or waiting. */
+  readonly isActive = computed(
+    () => this._status() === 'running' || this._status() === 'waiting',
+  );
+
+  /** Completion progress in the range `[0, 1]`. */
+  readonly progress = computed(() => {
+    const total = this.totalSteps();
+    return total === 0 ? 0 : (this._index() + 1) / total;
+  });
+
+  constructor() {
+    // Ensure we never leak overlays or event subscriptions on teardown.
+    this.destroyRef.onDestroy(() => this.teardown('skipped'));
+  }
+
+  // --- Public API --------------------------------------------------------
+
+  /**
+   * Load a config (if provided) and begin the tour from the first step.
+   *
+   * @param config Optional config to load; reuses the previously loaded one
+   *               when omitted.
+   */
+  start(config?: OnboardingConfig): void {
+    if (config) {
+      this.load(config);
+    }
+    if (!this.config || this.config.steps.length === 0) {
+      console.warn('[ngx-agentic-onboarding] start() called with no steps.');
+      return;
+    }
+    this.bus.emit(OnboardingLifecycleEvent.TourStarted, {
+      id: this.config.id,
+    });
+    void this.goTo(0);
+  }
+
+  /** Advance to the next step, completing the tour after the last one. */
+  next(): void {
+    if (!this.isActive()) {
+      return;
+    }
+    const target = this._index() + 1;
+    if (target >= this.totalSteps()) {
+      this.complete();
+    } else {
+      void this.goTo(target);
+    }
+  }
+
+  /** Return to the previous step (no-op on the first step). */
+  prev(): void {
+    if (!this.isActive()) {
+      return;
+    }
+    const target = this._index() - 1;
+    if (target >= 0) {
+      void this.goTo(target);
+    }
+  }
+
+  /** Skip/abort the tour before completion. */
+  skip(): void {
+    if (!this.isActive()) {
+      return;
+    }
+    this.bus.emit(OnboardingLifecycleEvent.TourSkipped, {
+      id: this.config?.id,
+      atIndex: this._index(),
+    });
+    this.teardown('skipped');
+  }
+
+  /**
+   * Jump directly to a step by index, running the full async transition
+   * pipeline. Out-of-range indices are ignored.
+   */
+  async goTo(index: number): Promise<void> {
+    if (!this.config || index < 0 || index >= this.config.steps.length) {
+      return;
+    }
+    await this.runTransition(index);
+  }
+
+  // --- Transition pipeline ----------------------------------------------
+
+  /**
+   * Loads and normalises a config without starting the tour.
+   */
+  private load(config: OnboardingConfig): void {
+    this.teardown('idle');
+    this.config = config;
+    this.options = { ...DEFAULT_ONBOARDING_OPTIONS, ...(config.options ?? {}) };
+  }
+
+  /**
+   * The heart of the engine: sequentially and *cancellably* moves to a step.
+   * Each stage re-validates the transition token so that a newer transition
+   * (or a teardown) silently supersedes an in-flight one instead of racing.
+   */
+  private async runTransition(index: number): Promise<void> {
+    const token = ++this.transitionToken;
+    this.cancelPendingWait();
+
+    const step = this.config!.steps[index];
+    const previous = this.currentStep();
+    this._status.set('running');
+
+    try {
+      // 1. after-hook of the step we're leaving.
+      if (previous) {
+        await this.runHook(previous.afterStep, this._index());
+        if (this.isStale(token)) return;
+        this.bus.emit(OnboardingLifecycleEvent.StepCompleted, {
+          id: previous.id,
+        });
+      }
+
+      // 2. before-hook of the incoming step.
+      await this.runHook(step.beforeStep, index);
+      if (this.isStale(token)) return;
+
+      // 3. drive the router, if requested, and await settling.
+      if (step.navigateToRoute) {
+        await this.navigate(step.navigateToRoute);
+        if (this.isStale(token)) return;
+      }
+
+      // 4. wait for the target to materialise in the DOM.
+      const target = await this.resolveTarget(step);
+      if (this.isStale(token)) return;
+
+      if (!target && step.targetSelector && !step.optional) {
+        this.handleMissingTarget(step, index);
+        if (this.options.abortOnMissingTarget) return;
+      }
+
+      // 5. optional settle delay for entry animations.
+      if (step.delayMs && step.delayMs > 0) {
+        await this.sleep(step.delayMs);
+        if (this.isStale(token)) return;
+      }
+
+      // 6. commit: this is the point of no return for this transition.
+      this._index.set(index);
+      this.render(step, target, index);
+      this.bus.emit(OnboardingLifecycleEvent.StepShown, { id: step.id });
+
+      // 7. if the step is event-gated, pause and wait for the business event.
+      if (step.waitForEvent) {
+        this.waitForBusinessEvent(step, token);
+      } else {
+        this._status.set('running');
+      }
+    } catch (error) {
+      if (this.isStale(token)) return;
+      this.bus.emit(OnboardingLifecycleEvent.StepError, {
+        id: step.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      console.error('[ngx-agentic-onboarding] step transition failed:', error);
+    }
+  }
+
+  /** Subscribe to the bus and auto-advance once the awaited event fires. */
+  private waitForBusinessEvent(step: OnboardingStep, token: number): void {
+    this._status.set('waiting');
+    this.bus.emit(OnboardingLifecycleEvent.StepWaiting, {
+      id: step.id,
+      event: step.waitForEvent,
+    });
+
+    this.waitSub = this.bus
+      .on(step.waitForEvent!)
+      .subscribe((payload) => {
+        if (this.isStale(token)) return;
+        if (step.eventFilter && !step.eventFilter(payload)) return;
+        this.cancelPendingWait();
+        this.next();
+      });
+  }
+
+  // --- Async helpers -----------------------------------------------------
+
+  /** Awaits router navigation; degrades gracefully if no Router is present. */
+  private async navigate(route: string): Promise<void> {
+    if (!this.router) {
+      console.warn(
+        `[ngx-agentic-onboarding] navigateToRoute="${route}" ignored: ` +
+          'no Router available. Did you provide the router in this app?',
+      );
+      return;
+    }
+    try {
+      await this.router.navigateByUrl(route);
+    } catch (error) {
+      console.warn(
+        `[ngx-agentic-onboarding] navigation to "${route}" failed:`,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Resolves a step's target element, polling the DOM until it appears or the
+   * configured timeout elapses. Returns `null` for target-less (centered)
+   * steps, when running without a DOM (SSR), or on timeout.
+   */
+  private resolveTarget(step: OnboardingStep): Promise<Element | null> {
+    if (!step.targetSelector) {
+      return Promise.resolve(null);
+    }
+    const selector = step.targetSelector;
+    const timeout =
+      step.waitForSelectorTimeoutMs ?? this.options.waitForSelectorTimeoutMs;
+    const interval = this.options.selectorPollIntervalMs;
+    const doc = this.document;
+
+    // SSR / no-DOM guard.
+    if (!doc || typeof doc.querySelector !== 'function') {
+      return Promise.resolve(null);
+    }
+
+    return new Promise<Element | null>((resolve) => {
+      const immediate = doc.querySelector(selector);
+      if (immediate) {
+        resolve(immediate);
+        return;
+      }
+      const startedAt = Date.now();
+      const handle = setInterval(() => {
+        const found = doc.querySelector(selector);
+        if (found) {
+          clearInterval(handle);
+          resolve(found);
+        } else if (Date.now() - startedAt >= timeout) {
+          clearInterval(handle);
+          resolve(null);
+        }
+      }, interval);
+    });
+  }
+
+  /** Runs an optional lifecycle hook, isolating its errors from the pipeline. */
+  private async runHook(
+    hook: OnboardingStep['beforeStep'],
+    index: number,
+  ): Promise<void> {
+    if (!hook) {
+      return;
+    }
+    try {
+      await hook({ step: this.config!.steps[index], index, total: this.totalSteps() });
+    } catch (error) {
+      console.warn('[ngx-agentic-onboarding] lifecycle hook threw:', error);
+    }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  // --- Rendering & teardown ---------------------------------------------
+
+  private render(step: OnboardingStep, target: Element | null, index: number): void {
+    if (!this.renderer) {
+      return;
+    }
+    const controls: OnboardingRenderControls = {
+      next: () => this.next(),
+      prev: () => this.prev(),
+      skip: () => this.skip(),
+      index,
+      total: this.totalSteps(),
+      isWaitingForEvent: !!step.waitForEvent,
+    };
+    try {
+      this.renderer.show(step, target, controls);
+    } catch (error) {
+      console.error('[ngx-agentic-onboarding] renderer.show() failed:', error);
+    }
+  }
+
+  private complete(): void {
+    this.bus.emit(OnboardingLifecycleEvent.TourCompleted, {
+      id: this.config?.id,
+    });
+    this.teardown('completed');
+  }
+
+  private handleMissingTarget(step: OnboardingStep, index: number): void {
+    this.bus.emit(OnboardingLifecycleEvent.StepError, {
+      id: step.id,
+      error: `Target "${step.targetSelector}" not found within timeout.`,
+    });
+    console.warn(
+      `[ngx-agentic-onboarding] step "${step.id}" (#${index}) target ` +
+        `"${step.targetSelector}" never appeared.`,
+    );
+  }
+
+  /** Cancels any pending business-event subscription. */
+  private cancelPendingWait(): void {
+    this.waitSub?.unsubscribe();
+    this.waitSub = null;
+  }
+
+  /** Fully resets engine state and tears down the overlay. */
+  private teardown(status: OnboardingStatus): void {
+    // Invalidate any in-flight transition.
+    this.transitionToken++;
+    this.cancelPendingWait();
+    this._index.set(-1);
+    this._status.set(status);
+    try {
+      this.renderer?.hide();
+    } catch (error) {
+      console.error('[ngx-agentic-onboarding] renderer.hide() failed:', error);
+    }
+  }
+
+  /** True when `token` no longer identifies the active transition. */
+  private isStale(token: number): boolean {
+    return token !== this.transitionToken;
+  }
+}
