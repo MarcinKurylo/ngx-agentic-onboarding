@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit:
+    name: Unit & integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # The demo spec imports the library from dist/, so build it first.
+      - name: Build library
+        run: npx ng build ngx-agentic-onboarding
+
+      - name: Test library (unit + integration)
+        run: >-
+          npx ng test ngx-agentic-onboarding --watch=false
+          --browsers=ChromeHeadlessNoSandbox --karma-config karma.conf.js
+
+      - name: Test demo
+        run: >-
+          npx ng test demo --watch=false
+          --browsers=ChromeHeadlessNoSandbox --karma-config karma.conf.js
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Uses the runner's preinstalled Google Chrome via channel: 'chrome'.
+      # The Playwright webServer builds the library and serves the demo.
+      - name: Run e2e
+        run: npx playwright test
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
