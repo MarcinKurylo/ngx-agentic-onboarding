@@ -1,92 +1,213 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { OnboardingEventBus } from 'ngx-agentic-onboarding';
+
+import { ApiService, Project, ProjectStatus } from './api.service';
+
+type Filter = 'all' | ProjectStatus;
 
 @Component({
   selector: 'app-home',
   imports: [FormsModule],
   template: `
-    <section id="welcome-card" class="card">
+    <section id="welcome-card" class="card welcome">
       <h2>Panel projektów</h2>
-      <p>Zacznij od utworzenia swojego pierwszego projektu.</p>
+      <p>Przeglądaj, filtruj i twórz projekty. Dane ładują się asynchronicznie.</p>
     </section>
 
     <section class="card">
-      <h3>Nowy projekt</h3>
-      <label>
-        Nazwa projektu
-        <input
-          type="text"
-          [(ngModel)]="projectName"
-          placeholder="np. Mój genialny projekt"
-        />
-      </label>
-      <button id="btn-submit" type="button" (click)="createProject()">
-        Utwórz projekt
-      </button>
+      <div class="toolbar">
+        <h3>Projekty</h3>
 
-      @if (created()) {
-        <p class="ok">
-          ✅ Utworzono „{{ created() }}" — wyemitowano zdarzenie
-          <code>PROJECT_CREATED</code>.
-        </p>
+        <!-- Dropdown: opening it and picking an option both fire bus events -->
+        <div class="dropdown">
+          <button id="filter-btn" type="button" (click)="toggleFilter()">
+            Filtr: {{ filterLabel() }} ▾
+          </button>
+          @if (filterOpen()) {
+            <ul class="menu" role="menu">
+              <li>
+                <button id="filter-all" type="button" (click)="applyFilter('all')">
+                  Wszystkie
+                </button>
+              </li>
+              <li>
+                <button id="filter-active" type="button" (click)="applyFilter('active')">
+                  Aktywne
+                </button>
+              </li>
+              <li>
+                <button type="button" (click)="applyFilter('archived')">
+                  Zarchiwizowane
+                </button>
+              </li>
+            </ul>
+          }
+        </div>
+
+        <button id="new-project-btn" type="button" class="primary" (click)="openModal()">
+          + Nowy projekt
+        </button>
+      </div>
+
+      <!-- Loader while the simulated request is in flight -->
+      @if (loading()) {
+        <div class="loader"><span class="spinner"></span> Ładowanie projektów…</div>
+      } @else {
+        <ul id="projects-list" class="list">
+          @for (p of projects(); track p.id) {
+            <li>
+              <span class="dot" [class.archived]="p.status === 'archived'"></span>
+              <strong>{{ p.name }}</strong>
+              <em>{{ p.status === 'active' ? 'aktywny' : 'zarchiwizowany' }}</em>
+            </li>
+          } @empty {
+            <li class="muted">Brak projektów dla tego filtra.</li>
+          }
+        </ul>
       }
     </section>
+
+    <!-- Modal (no full backdrop — Driver.js provides the dimming during a tour) -->
+    @if (modalOpen()) {
+      <div class="modal" role="dialog" aria-modal="true">
+        <h3>Nowy projekt</h3>
+        <label>
+          Nazwa projektu
+          <input id="project-name" type="text" [(ngModel)]="draftName" placeholder="np. Orion" />
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="ghost" (click)="closeModal()" [disabled]="creating()">
+            Anuluj
+          </button>
+          <button id="modal-submit" type="button" class="primary" (click)="submit()" [disabled]="creating()">
+            @if (creating()) {
+              <span class="spinner small"></span> Tworzenie…
+            } @else {
+              Utwórz projekt
+            }
+          </button>
+        </div>
+      </div>
+    }
   `,
   styles: `
     .card {
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 1.25rem 1.5rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+      padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
     }
     h2, h3 { margin-top: 0; }
-    label { display: block; margin-bottom: 0.75rem; font-weight: 600; }
-    input {
-      display: block;
-      width: 100%;
-      max-width: 320px;
-      margin-top: 0.35rem;
-      padding: 0.5rem 0.6rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      font: inherit;
+    .toolbar { display: flex; align-items: center; gap: 1rem; }
+    .toolbar h3 { margin: 0; margin-right: auto; }
+    button { font: inherit; cursor: pointer; border-radius: 8px; padding: .5rem .9rem; border: 1px solid #cbd5e1; background: #fff; }
+    button.primary { background: #4f46e5; color: #fff; border: 0; font-weight: 600; }
+    button.primary:hover { background: #4338ca; }
+    button.ghost { background: transparent; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+
+    .dropdown { position: relative; }
+    .menu {
+      position: absolute; top: 110%; left: 0; z-index: 20; margin: 0; padding: .25rem;
+      list-style: none; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.12); min-width: 190px;
     }
-    button {
-      padding: 0.55rem 1.1rem;
-      border: 0;
-      border-radius: 8px;
-      background: #4f46e5;
-      color: #fff;
-      font: inherit;
-      font-weight: 600;
-      cursor: pointer;
+    .menu button { display: block; width: 100%; text-align: left; border: 0; }
+    .menu button:hover { background: #eef2ff; }
+
+    .loader { display: flex; align-items: center; gap: .6rem; padding: 1.5rem 0; color: #6b7280; }
+    .list { list-style: none; padding: 0; margin: 1rem 0 0; }
+    .list li { display: flex; align-items: center; gap: .6rem; padding: .55rem 0; border-top: 1px solid #f1f5f9; }
+    .list em { color: #6b7280; margin-left: auto; font-style: normal; font-size: .85rem; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; }
+    .dot.archived { background: #9ca3af; }
+    .muted { color: #9ca3af; }
+
+    .modal {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 30; width: min(90vw, 380px);
+      background: #fff; border-radius: 14px; padding: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
     }
-    button:hover { background: #4338ca; }
-    .ok { color: #059669; font-weight: 600; }
-    code {
-      background: #eef2ff;
-      padding: 0.1rem 0.35rem;
-      border-radius: 4px;
+    .modal label { display: block; font-weight: 600; margin-bottom: 1rem; }
+    .modal input { display: block; width: 100%; margin-top: .35rem; padding: .55rem .6rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid #c7d2fe; border-top-color: #4f46e5;
+      display: inline-block; animation: spin .7s linear infinite;
     }
+    .spinner.small { width: 13px; height: 13px; border-width: 2px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   `,
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
+  private readonly api = inject(ApiService);
   private readonly bus = inject(OnboardingEventBus);
-  private readonly router = inject(Router);
 
-  projectName = '';
-  readonly created = signal<string | null>(null);
+  readonly loading = signal(true);
+  readonly projects = signal<Project[]>([]);
+  readonly filter = signal<Filter>('all');
+  readonly filterOpen = signal(false);
+  readonly modalOpen = signal(false);
+  readonly creating = signal(false);
+  draftName = '';
 
-  createProject(): void {
-    const name = this.projectName.trim() || 'Bez nazwy';
-    this.created.set(name);
+  ngOnInit(): void {
+    this.load();
+  }
 
-    // The host app emits a plain business event — it knows nothing about the
-    // tour. The orchestrator is listening and will advance + route on its own.
-    this.bus.emit('PROJECT_CREATED', { name });
+  filterLabel(): string {
+    return { all: 'Wszystkie', active: 'Aktywne', archived: 'Zarchiwizowane' }[
+      this.filter()
+    ];
+  }
+
+  toggleFilter(): void {
+    const open = !this.filterOpen();
+    this.filterOpen.set(open);
+    if (open) {
+      // Business signal: the menu opened. The tour is listening.
+      this.bus.emit('MENU_OPENED');
+    }
+  }
+
+  applyFilter(filter: Filter): void {
+    this.filter.set(filter);
+    this.filterOpen.set(false);
+    this.load(); // triggers the loader + a fresh "request"
+    this.bus.emit('FILTER_APPLIED', { filter });
+  }
+
+  openModal(): void {
+    this.draftName = '';
+    this.modalOpen.set(true);
+    this.bus.emit('MODAL_OPENED');
+  }
+
+  closeModal(): void {
+    this.modalOpen.set(false);
+  }
+
+  submit(): void {
+    this.creating.set(true);
+    this.api.createProject(this.draftName).subscribe((project) => {
+      this.creating.set(false);
+      this.modalOpen.set(false);
+      // Only after the "request" resolves do we announce the domain event.
+      this.bus.emit('PROJECT_CREATED', project);
+      this.load();
+    });
+  }
+
+  private load(): void {
+    this.loading.set(true);
+    const f = this.filter();
+    const status = f === 'all' ? undefined : f;
+    this.api.getProjects(status).subscribe((list) => {
+      this.projects.set(list);
+      this.loading.set(false);
+    });
   }
 }
