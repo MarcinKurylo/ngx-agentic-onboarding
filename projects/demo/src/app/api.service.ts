@@ -9,11 +9,15 @@ export interface Project {
   status: ProjectStatus;
 }
 
+export type StatsRange = '7d' | '30d' | '90d';
+
 export interface Stats {
   projects: number;
   tasks: number;
   completion: number;
   series: number[];
+  /** Premium-only signal, surfaced on the dashboard for team plans. */
+  velocity: number;
 }
 
 /**
@@ -49,13 +53,20 @@ export class ApiService {
     return of(project).pipe(delay(1200));
   }
 
-  /** Simulated GET /stats. */
-  getStats(): Observable<Stats> {
+  /** Simulated GET /stats for a given time range. */
+  getStats(range: StatsRange = '30d'): Observable<Stats> {
+    const shape: Record<StatsRange, { series: number[]; tasks: number; velocity: number }> = {
+      '7d': { series: [55, 40, 70, 90, 60], tasks: 12, velocity: 7 },
+      '30d': { series: [40, 70, 55, 90, 65, 80], tasks: 42, velocity: 21 },
+      '90d': { series: [30, 45, 60, 50, 75, 65, 85, 95], tasks: 128, velocity: 63 },
+    };
+    const s = shape[range];
     return of<Stats>({
       projects: this.projects.length,
-      tasks: 42,
+      tasks: s.tasks,
       completion: 0.68,
-      series: [40, 70, 55, 90, 65, 80],
+      series: s.series,
+      velocity: s.velocity,
     }).pipe(delay(1100));
   }
 }
