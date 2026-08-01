@@ -139,6 +139,87 @@ export function buildDashboardTour(account: AccountService): OnboardingConfig {
 }
 
 /**
+ * Tour D — overlays that live in the CDK's `cdk-overlay-container` (a `cdkDialog`
+ * with its own backdrop + focus trap, and a connected-overlay menu) are first-class
+ * targets: the engine highlights elements inside them and the user interacts
+ * normally. This tour walks through both — filling in a dialog and picking from a
+ * dropdown panel — entirely event-driven, just like every other tour.
+ */
+export function buildCdkTour(): OnboardingConfig {
+  return {
+    version: '1.0.0',
+    id: 'cdk-tour',
+    options: {
+      // If the user pauses on an interactive step, reveal "Next" after a while
+      // so the tour can always move on.
+      waitForEventTimeoutMs: 8000,
+      onWaitTimeout: 'reveal',
+    },
+    steps: [
+      {
+        id: 'cdk-welcome',
+        title: 'Overlaye CDK 🧩',
+        content:
+          'Samouczek prowadzi też przez prawdziwe overlaye CDK — dialog i connected overlay. Silnik przeniósł Cię na /cdk-lab.',
+        placement: 'center',
+        navigateToRoute: '/cdk-lab',
+      },
+      {
+        id: 'cdk-open',
+        targetSelector: '#cdk-open-dialog',
+        title: 'Otwórz dialog',
+        content: 'Kliknij — otworzy się cdkDialog (z własnym backdropem i focus trapem).',
+        placement: 'bottom-start',
+        waitForEvent: 'CDK_DIALOG_OPENED',
+      },
+      {
+        id: 'cdk-dialog-name',
+        targetSelector: '#cdk-dialog-name',
+        title: 'Nazwij projekt',
+        content:
+          'Podświetlone pole jest w dialogu i jest w pełni interaktywne — wpisz nazwę i przejdź dalej.',
+        placement: 'right',
+        delayMs: 200,
+      },
+      {
+        id: 'cdk-dialog-save',
+        targetSelector: '#cdk-dialog-save',
+        title: 'Zapisz',
+        content: 'Kliknij „Zapisz” — dialog się zamknie i ruszymy dalej.',
+        placement: 'top',
+        waitForEvent: 'CDK_DIALOG_SAVED',
+      },
+      {
+        id: 'cdk-menu-open',
+        targetSelector: '#cdk-menu-trigger',
+        title: 'Rozwiń widok',
+        content: 'Kliknij, aby otworzyć menu wyboru widoku (connected overlay CDK).',
+        placement: 'bottom-start',
+        waitForEvent: 'CDK_MENU_OPENED',
+      },
+      {
+        id: 'cdk-menu-item',
+        targetSelector: '#cdk-menu-board',
+        title: 'Wybierz „Tablica”',
+        content:
+          'Pozycja żyje w connected overlay, a mimo to jest podświetlona i klikalna — wybierz ją.',
+        placement: 'right',
+        delayMs: 150,
+        waitForEvent: 'CDK_VIEW_PICKED',
+      },
+      {
+        id: 'cdk-done',
+        title: 'Gotowe 🎉',
+        content:
+          'Dialog i connected overlay obsłużone tak samo jak zwykłe elementy — bez żadnego kodu touru w komponentach.',
+        placement: 'center',
+        popoverClass: 'step-finish',
+      },
+    ],
+  };
+}
+
+/**
  * Tour C — account setup on the Settings route. Demonstrates a conditional
  * team-only section step and a `waitForEvent: 'SETTINGS_SAVED'` step with a
  * timeout that reveals "Next" if the user never saves.

@@ -5,6 +5,7 @@ import { OnboardingConfig, OnboardingOrchestrator } from 'ngx-agentic-onboarding
 import { AccountService } from './account.service';
 import {
   appOnboarding,
+  buildCdkTour,
   buildDashboardTour,
   buildSettingsTour,
 } from './onboarding.config';
@@ -19,6 +20,7 @@ import {
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Projekty</a>
         <a routerLink="/dashboard" routerLinkActive="active">Panel</a>
         <a routerLink="/settings" routerLinkActive="active">Ustawienia</a>
+        <a routerLink="/cdk-lab" routerLinkActive="active">CDK Lab</a>
       </nav>
       <span class="plan" [class.team]="account.isTeam()">
         Plan: {{ account.isTeam() ? 'Zespół' : 'Free' }}
@@ -37,7 +39,7 @@ import {
     <section class="launcher">
       <div class="launcher-head">
         <h2>Samouczki</h2>
-        <p>Trzy niezależne scenariusze — każdy z osobnym, zapamiętywanym postępem.</p>
+        <p>Cztery niezależne scenariusze — każdy z osobnym, zapamiętywanym postępem.</p>
       </div>
       <div class="tours">
         <!-- Tour A: the flagship async flow (canonical button labels kept for e2e) -->
@@ -87,6 +89,22 @@ import {
             <button type="button" class="link" (click)="reset(settingsTour)">Reset</button>
           </div>
         </article>
+
+        <!-- Tour D: CDK overlays as first-class targets — highlights and drives
+             elements inside a cdkDialog and a connected-overlay menu. -->
+        <article class="tour cdk">
+          <div class="tour-top">
+            <h3>Overlaye CDK 🧩</h3>
+            @if (orchestrator.hasCompleted(cdkTour)) { <span class="badge done">ukończony</span> }
+          </div>
+          <p>Prowadzi przez prawdziwy <em>cdkDialog</em> i connected overlay — highlight działa w nich tak jak wszędzie.</p>
+          <div class="row">
+            <button type="button" class="primary" (click)="start(cdkTour)" [disabled]="orchestrator.isActive()">
+              ▶ Uruchom
+            </button>
+            <button type="button" class="link" (click)="reset(cdkTour)">Reset</button>
+          </div>
+        </article>
       </div>
     </section>
 
@@ -118,6 +136,7 @@ import {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
       padding: 1rem 1.15rem; box-shadow: 0 1px 3px rgba(0,0,0,.06);
     }
+    .tour.cdk { border-color: #ddd6fe; background: linear-gradient(180deg, #faf5ff, #fff); }
     .tour-top { display: flex; align-items: center; gap: .6rem; }
     .tour-top h3 { margin: 0; margin-right: auto; font-size: 1.02rem; }
     .tour p { color: #6b7280; font-size: .85rem; min-height: 2.4em; }
@@ -141,6 +160,7 @@ export class AppComponent {
   readonly appOnboarding = appOnboarding;
   readonly dashboardTour = buildDashboardTour(this.account);
   readonly settingsTour = buildSettingsTour(this.account);
+  readonly cdkTour = buildCdkTour();
 
   /** Always starts the given tour. */
   start(config: OnboardingConfig): void {

@@ -3,6 +3,11 @@
 /* Driver.js overlay styles — required by the DriverJsRenderer. */
 @import 'driver.js/dist/driver.css';
 
+/* Angular CDK overlay styles — required for the CDK Lab page (dialog backdrop
+   + connected-overlay positioning). Only the demo depends on the CDK; the
+   library itself stays dependency-free. */
+@import '@angular/cdk/overlay-prebuilt.css';
+
 /*
  * Optional onboarding theme (default look via CSS variables). A published app
  * would import it by package path:
