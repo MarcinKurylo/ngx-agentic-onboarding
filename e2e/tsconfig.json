@@ -1,0 +1,11 @@
+/* Isolated TS context for Playwright e2e specs so the editor resolves them
+ * correctly. `test`/`expect` come from the @playwright/test import, so no
+ * ambient test-runner types are needed here. */
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out-tsc/e2e",
+    "types": []
+  },
+  "include": ["**/*.ts"]
+}

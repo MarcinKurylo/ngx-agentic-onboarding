@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4271;
 const baseURL = `http://localhost:${PORT}`;
+// Bracket access: root tsconfig has noPropertyAccessFromIndexSignature.
+const isCI = !!process.env['CI'];
 
 /**
  * E2E config — top of the test pyramid.
@@ -13,9 +15,9 @@ const baseURL = `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? 'line' : 'list',
+  forbidOnly: isCI,
+  retries: isCI ? 1 : 0,
+  reporter: isCI ? 'line' : 'list',
   use: {
     baseURL,
     channel: 'chrome',
@@ -26,7 +28,7 @@ export default defineConfig({
   webServer: {
     command: `npx ng build ngx-agentic-onboarding && npx ng serve demo --port ${PORT}`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !isCI,
     timeout: 180_000,
     stdout: 'ignore',
     stderr: 'pipe',
