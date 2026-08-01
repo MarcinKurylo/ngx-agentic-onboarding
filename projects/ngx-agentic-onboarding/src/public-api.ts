@@ -9,3 +9,7 @@ export * from './lib/models';
 export * from './lib/services/onboarding-event-bus.service';
 export * from './lib/services/onboarding-orchestrator.service';
 export * from './lib/services/onboarding-renderer';
+
+// Driver.js overlay renderer (pillar 3)
+export * from './lib/services/driverjs-renderer';
+export * from './lib/provide-onboarding';

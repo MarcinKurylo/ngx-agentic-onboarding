@@ -1,1 +1,9 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* Driver.js overlay styles — required by the DriverJsRenderer. */
+@import 'driver.js/dist/driver.css';
+
+body {
+  margin: 0;
+  background: #f1f5f9;
+}

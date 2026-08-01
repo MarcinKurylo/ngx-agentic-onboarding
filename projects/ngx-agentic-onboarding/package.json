@@ -12,6 +12,7 @@
     }
   },
   "dependencies": {
+    "driver.js": "^1.8.0",
     "tslib": "^2.3.0"
   },
   "sideEffects": false
