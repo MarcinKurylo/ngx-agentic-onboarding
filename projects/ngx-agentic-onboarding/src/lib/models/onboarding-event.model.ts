@@ -42,6 +42,18 @@ export enum OnboardingLifecycleEvent {
   StepCompleted = 'onboarding:step_completed',
   /** The engine is waiting on a business event to unblock a step. */
   StepWaiting = 'onboarding:step_waiting',
+  /**
+   * A {@link OnboardingStep.waitForEvent} wait exceeded its configured timeout
+   * without the business event firing. The engine then applies the configured
+   * {@link OnboardingOptions.onWaitTimeout} behaviour.
+   */
+  StepWaitTimeout = 'onboarding:step_wait_timeout',
+  /**
+   * A visible step's highlighted target was removed from the DOM. The engine
+   * attempts to re-resolve it; if it never returns, a {@link StepError} follows
+   * and the overlay is closed.
+   */
+  StepTargetLost = 'onboarding:step_target_lost',
   /** A recoverable error occurred (e.g. selector never appeared). */
   StepError = 'onboarding:step_error',
 }

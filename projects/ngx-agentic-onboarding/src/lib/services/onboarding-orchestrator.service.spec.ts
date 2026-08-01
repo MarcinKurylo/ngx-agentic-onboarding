@@ -203,6 +203,125 @@ describe('OnboardingOrchestrator', () => {
     });
   });
 
+  describe('waitForEvent timeout', () => {
+    it('reveals Next and stays put when the event never fires (default)', async () => {
+      orchestrator.start(
+        config([
+          { id: 's0', waitForEvent: 'X', waitForEventTimeoutMs: 30 },
+          { id: 's1' },
+        ]),
+      );
+      await flush();
+      expect(orchestrator.status()).toBe('waiting');
+      expect(renderer.last.controls.isWaitingForEvent).toBeTrue();
+
+      await wait(70);
+
+      // Un-gated in place: same step, Next now available, not advanced.
+      expect(orchestrator.status()).toBe('running');
+      expect(orchestrator.currentIndex()).toBe(0);
+      expect(renderer.last.controls.isWaitingForEvent).toBeFalse();
+    });
+
+    it('emits StepWaitTimeout when the wait elapses', async () => {
+      const seen = events();
+      orchestrator.start(
+        config([{ id: 's0', waitForEvent: 'X', waitForEventTimeoutMs: 30 }]),
+      );
+      await wait(70);
+
+      expect(seen).toContain(OnboardingLifecycleEvent.StepWaitTimeout);
+    });
+
+    it('auto-advances on timeout when onWaitTimeout is "advance"', async () => {
+      orchestrator.start(
+        config([{ id: 's0', waitForEvent: 'X' }, { id: 's1' }], {
+          waitForEventTimeoutMs: 30,
+          onWaitTimeout: 'advance',
+        }),
+      );
+      await wait(70);
+
+      expect(orchestrator.currentIndex()).toBe(1);
+      expect(orchestrator.status()).toBe('running');
+    });
+
+    it('aborts the tour on timeout when onWaitTimeout is "skip"', async () => {
+      orchestrator.start(
+        config([{ id: 's0', waitForEvent: 'X' }, { id: 's1' }], {
+          waitForEventTimeoutMs: 30,
+          onWaitTimeout: 'skip',
+        }),
+      );
+      await wait(70);
+
+      expect(orchestrator.status()).toBe('skipped');
+      expect(orchestrator.currentIndex()).toBe(-1);
+    });
+
+    it('does not fire the timeout once the event arrives first', async () => {
+      orchestrator.start(
+        config([
+          { id: 's0', waitForEvent: 'X', waitForEventTimeoutMs: 40 },
+          { id: 's1' },
+        ]),
+      );
+      await flush();
+      bus.emit('X');
+      await flush();
+      expect(orchestrator.currentIndex()).toBe(1);
+
+      // The now-cancelled timer must not disturb the following step.
+      await wait(70);
+      expect(orchestrator.currentIndex()).toBe(1);
+      expect(orchestrator.status()).toBe('running');
+    });
+  });
+
+  describe('target loss while a step is visible', () => {
+    it('re-resolves and re-paints when the target is swapped out', async () => {
+      const el = addTarget('welcome');
+      orchestrator.start(
+        config([{ id: 's0', targetSelector: '#welcome' }], {
+          waitForSelectorTimeoutMs: 200,
+          selectorPollIntervalMs: 10,
+        }),
+      );
+      await flush();
+      expect(renderer.last.target).toBe(el);
+      const shownBefore = renderer.shown.length;
+
+      // Host re-renders the list: old node detached, fresh one takes its place.
+      el.remove();
+      const el2 = addTarget('welcome');
+      await wait(80);
+
+      expect(renderer.shown.length).toBeGreaterThan(shownBefore);
+      expect(renderer.last.target).toBe(el2);
+      expect(orchestrator.status()).toBe('running');
+    });
+
+    it('closes the tour cleanly when the target never returns', async () => {
+      const seen = events();
+      const el = addTarget('welcome');
+      orchestrator.start(
+        config([{ id: 's0', targetSelector: '#welcome' }], {
+          waitForSelectorTimeoutMs: 40,
+          selectorPollIntervalMs: 10,
+        }),
+      );
+      await flush();
+
+      el.remove();
+      await wait(120);
+
+      expect(seen).toContain(OnboardingLifecycleEvent.StepTargetLost);
+      expect(seen).toContain(OnboardingLifecycleEvent.StepError);
+      expect(orchestrator.status()).toBe('skipped');
+      expect(orchestrator.currentIndex()).toBe(-1);
+    });
+  });
+
   it('navigates via the router before showing a step', async () => {
     orchestrator.start(
       config([{ id: 's0' }, { id: 's1', navigateToRoute: '/dash' }]),

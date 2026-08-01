@@ -88,6 +88,14 @@ export interface OnboardingStep {
   readonly eventFilter?: (payload: unknown) => boolean;
 
   /**
+   * Maximum time, in milliseconds, to wait for {@link waitForEvent} before the
+   * engine gives up and applies {@link OnboardingOptions.onWaitTimeout} (so the
+   * user is never stranded on a step whose event never fires). Overrides the
+   * global default; `0` disables the timeout for this step.
+   */
+  readonly waitForEventTimeoutMs?: number;
+
+  /**
    * Route the engine should navigate to *before* attempting to show this step.
    * The engine awaits navigation completion, then waits for the target selector
    * to appear in the DOM before rendering.

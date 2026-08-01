@@ -71,6 +71,24 @@ export class OnboardingOrchestrator {
   /** Active subscription waiting on a step's business event, if any. */
   private waitSub: Subscription | null = null;
 
+  /** Timer that fires when a business-event wait exceeds its timeout. */
+  private waitTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Observes the DOM to detect the visible step's target being removed. */
+  private targetObserver: MutationObserver | null = null;
+
+  /**
+   * Render context of the step currently on screen. Held so the engine can
+   * re-paint the same step in place (on target recovery or a wait timeout)
+   * without re-running the transition pipeline or its hooks.
+   */
+  private active: {
+    step: OnboardingStep;
+    target: Element | null;
+    index: number;
+    token: number;
+  } | null = null;
+
   // --- Reactive state ----------------------------------------------------
 
   private readonly _index = signal(-1);
@@ -240,6 +258,7 @@ export class OnboardingOrchestrator {
   private async runTransition(index: number): Promise<void> {
     const token = ++this.transitionToken;
     this.cancelPendingWait();
+    this.stopTargetWatch();
 
     const step = this.config!.steps[index];
     const previous = this.currentStep();
@@ -282,8 +301,11 @@ export class OnboardingOrchestrator {
 
       // 6. commit: this is the point of no return for this transition.
       this._index.set(index);
+      this.active = { step, target, index, token };
       this.render(step, target, index);
       this.bus.emit(OnboardingLifecycleEvent.StepShown, { id: step.id });
+      // Keep the highlight anchored even if the host re-renders the target away.
+      this.watchTarget(step, target, token);
 
       // 7. if the step is event-gated, pause and wait for the business event.
       if (step.waitForEvent) {
@@ -317,6 +339,46 @@ export class OnboardingOrchestrator {
         this.cancelPendingWait();
         this.next();
       });
+
+    // Never strand the user on an event that never fires.
+    const timeout =
+      step.waitForEventTimeoutMs ?? this.options.waitForEventTimeoutMs;
+    if (timeout && timeout > 0) {
+      this.waitTimer = setTimeout(
+        () => this.handleWaitTimeout(step, token),
+        timeout,
+      );
+    }
+  }
+
+  /**
+   * Applies the configured {@link OnboardingOptions.onWaitTimeout} behaviour
+   * once a business-event wait has timed out.
+   */
+  private handleWaitTimeout(step: OnboardingStep, token: number): void {
+    if (this.isStale(token)) return;
+    this.cancelPendingWait();
+    this.bus.emit(OnboardingLifecycleEvent.StepWaitTimeout, {
+      id: step.id,
+      event: step.waitForEvent,
+    });
+
+    switch (this.options.onWaitTimeout) {
+      case 'advance':
+        this.next();
+        return;
+      case 'skip':
+        this.skip();
+        return;
+      case 'reveal':
+      default:
+        // Un-gate the step: reveal "Next" so the user can proceed manually.
+        this._status.set('running');
+        if (this.active) {
+          this.render(this.active.step, this.active.target, this.active.index, false);
+        }
+        return;
+    }
   }
 
   // --- Async helpers -----------------------------------------------------
@@ -401,7 +463,12 @@ export class OnboardingOrchestrator {
 
   // --- Rendering & teardown ---------------------------------------------
 
-  private render(step: OnboardingStep, target: Element | null, index: number): void {
+  private render(
+    step: OnboardingStep,
+    target: Element | null,
+    index: number,
+    waiting: boolean = !!step.waitForEvent,
+  ): void {
     if (!this.renderer) {
       return;
     }
@@ -411,7 +478,7 @@ export class OnboardingOrchestrator {
       skip: () => this.skip(),
       index,
       total: this.totalSteps(),
-      isWaitingForEvent: !!step.waitForEvent,
+      isWaitingForEvent: waiting,
     };
     try {
       this.renderer.show(step, target, controls);
@@ -455,10 +522,89 @@ export class OnboardingOrchestrator {
     );
   }
 
-  /** Cancels any pending business-event subscription. */
+  // --- Target watching ---------------------------------------------------
+
+  /**
+   * Watches the DOM for the current step's highlighted target being detached,
+   * which happens routinely when the host re-renders a list or the user
+   * navigates away. Cheap: a single subtree observer that only acts once the
+   * specific element disconnects.
+   */
+  private watchTarget(
+    step: OnboardingStep,
+    target: Element | null,
+    token: number,
+  ): void {
+    if (!target || !step.targetSelector) {
+      return;
+    }
+    const view = this.document?.defaultView;
+    const root = this.document?.body ?? this.document?.documentElement;
+    if (!view || typeof view.MutationObserver !== 'function' || !root) {
+      return;
+    }
+    this.targetObserver = new view.MutationObserver(() => {
+      if (this.isStale(token)) {
+        this.stopTargetWatch();
+        return;
+      }
+      if (!target.isConnected) {
+        this.stopTargetWatch();
+        void this.handleTargetLost(step, token);
+      }
+    });
+    this.targetObserver.observe(root, { childList: true, subtree: true });
+  }
+
+  /**
+   * Recovers from a target that vanished while its step was on screen: polls
+   * for it to reappear (a re-render commonly swaps the node), re-painting in
+   * place if it does. If it never returns, the tour is closed cleanly.
+   */
+  private async handleTargetLost(
+    step: OnboardingStep,
+    token: number,
+  ): Promise<void> {
+    this.bus.emit(OnboardingLifecycleEvent.StepTargetLost, {
+      id: step.id,
+      selector: step.targetSelector,
+    });
+
+    const recovered = await this.resolveTarget(step);
+    if (this.isStale(token)) return;
+
+    if (recovered) {
+      if (this.active) this.active.target = recovered;
+      this.render(step, recovered, this._index(), this._status() === 'waiting');
+      this.watchTarget(step, recovered, token);
+      return;
+    }
+
+    this.bus.emit(OnboardingLifecycleEvent.StepError, {
+      id: step.id,
+      error: `Target "${step.targetSelector}" disappeared and did not return.`,
+    });
+    console.warn(
+      `[ngx-agentic-onboarding] step "${step.id}" target ` +
+        `"${step.targetSelector}" was removed and never came back; closing.`,
+    );
+    this.teardown('skipped');
+  }
+
+  /** Disconnects the target observer, if any. */
+  private stopTargetWatch(): void {
+    this.targetObserver?.disconnect();
+    this.targetObserver = null;
+  }
+
+  /** Cancels any pending business-event subscription and its timeout. */
   private cancelPendingWait(): void {
     this.waitSub?.unsubscribe();
     this.waitSub = null;
+    if (this.waitTimer !== null) {
+      clearTimeout(this.waitTimer);
+      this.waitTimer = null;
+    }
   }
 
   /** Fully resets engine state and tears down the overlay. */
@@ -466,6 +612,8 @@ export class OnboardingOrchestrator {
     // Invalidate any in-flight transition.
     this.transitionToken++;
     this.cancelPendingWait();
+    this.stopTargetWatch();
+    this.active = null;
     this._index.set(-1);
     this._status.set(status);
     try {

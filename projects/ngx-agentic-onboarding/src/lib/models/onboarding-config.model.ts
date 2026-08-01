@@ -1,6 +1,16 @@
 import { OnboardingStep } from './onboarding-step.model';
 
 /**
+ * What the engine does when a {@link OnboardingStep.waitForEvent} wait exceeds
+ * its timeout without the business event firing:
+ * - `reveal`  — stop waiting and reveal the "Next" button so the user can
+ *               advance manually (the safe default: nothing is lost).
+ * - `advance` — automatically move on to the next step.
+ * - `skip`    — abort the whole tour.
+ */
+export type OnWaitTimeoutBehavior = 'reveal' | 'advance' | 'skip';
+
+/**
  * Global, tour-wide defaults and behaviour toggles. Individual steps may
  * override the timing-related values.
  */
@@ -25,6 +35,21 @@ export interface OnboardingOptions {
    * @defaultValue false
    */
   readonly abortOnMissingTarget?: boolean;
+
+  /**
+   * Default maximum time, in milliseconds, to wait for a step's
+   * {@link OnboardingStep.waitForEvent} before applying {@link onWaitTimeout}.
+   * `0` (the default) waits indefinitely; steps may override via
+   * {@link OnboardingStep.waitForEventTimeoutMs}.
+   * @defaultValue 0
+   */
+  readonly waitForEventTimeoutMs?: number;
+
+  /**
+   * What to do when a {@link OnboardingStep.waitForEvent} wait times out.
+   * @defaultValue 'reveal'
+   */
+  readonly onWaitTimeout?: OnWaitTimeoutBehavior;
 
   /** Text for the "Next" control. @defaultValue 'Next' */
   readonly nextLabel?: string;
@@ -99,6 +124,8 @@ export const DEFAULT_ONBOARDING_OPTIONS: ResolvedOnboardingOptions = {
   waitForSelectorTimeoutMs: 5000,
   selectorPollIntervalMs: 100,
   abortOnMissingTarget: false,
+  waitForEventTimeoutMs: 0,
+  onWaitTimeout: 'reveal',
   nextLabel: 'Next',
   prevLabel: 'Back',
   skipLabel: 'Skip',

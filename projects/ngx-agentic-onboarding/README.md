@@ -81,10 +81,46 @@ export class AppComponent {
 | `targetSelector` | Element to highlight (omit for a centered step). |
 | `waitForEvent` | Pause until this event fires on the bus; hides "Next". |
 | `eventFilter` | Only advance when the event payload matches. |
+| `waitForEventTimeoutMs` | Give up waiting after N ms (see Resilience). |
 | `navigateToRoute` | Navigate, then wait for the target to appear. |
 | `delayMs` / `waitForSelectorTimeoutMs` | Timing for async DOM. |
 | `beforeStep` / `afterStep` | Awaited lifecycle hooks. |
 | `popoverClass` | Extra CSS class for theming this step. |
+
+## Resilience
+
+Async tours can strand a user if the app misbehaves — an event that never fires,
+or a highlighted element that a re-render tears away. The engine guards both:
+
+**Event timeouts.** A `waitForEvent` step normally waits forever. Give it a
+budget and the engine reacts when it lapses instead of hanging:
+
+```ts
+provideOnboarding(/* renderer opts */);
+
+// in the config's options:
+const cfg: OnboardingConfig = {
+  version: '1.0.0', id: 'main',
+  options: {
+    waitForEventTimeoutMs: 15000, // global budget (0 = wait forever, default)
+    onWaitTimeout: 'reveal',      // 'reveal' | 'advance' | 'skip'
+  },
+  steps: [
+    { id: 'create', targetSelector: '#save', waitForEvent: 'SAVED',
+      waitForEventTimeoutMs: 8000 /* per-step override */ },
+  ],
+};
+```
+
+`reveal` (default) un-hides "Next" so the user can proceed manually; `advance`
+moves on automatically; `skip` ends the tour. Every timeout emits an
+`onboarding:step_wait_timeout` event on the bus.
+
+**Target recovery.** While a step is on screen the engine watches its target. If
+the host detaches it (e.g. a list re-renders), the engine re-resolves the same
+selector and re-paints in place; if it never returns, the tour closes cleanly
+(`onboarding:step_target_lost`, then `onboarding:step_error`). No stale highlight
+left anchored to nothing.
 
 ## Persistence
 
