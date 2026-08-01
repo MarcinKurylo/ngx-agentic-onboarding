@@ -1,9 +1,12 @@
 import { DOCUMENT } from '@angular/common';
 import {
+  afterNextRender,
   computed,
   DestroyRef,
   inject,
   Injectable,
+  Injector,
+  NgZone,
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
@@ -50,6 +53,8 @@ export class OnboardingOrchestrator {
   private readonly renderer = inject(ONBOARDING_RENDERER, { optional: true });
   private readonly storage = inject(ONBOARDING_STORAGE);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
+  private readonly zone = inject(NgZone, { optional: true });
 
   /**
    * The loaded config, held in a signal so that every `computed()` derived
@@ -427,17 +432,7 @@ export class OnboardingOrchestrator {
         if (this.isStale(token)) return;
         if (step.eventFilter && !step.eventFilter(payload)) return;
         this.cancelPendingWait();
-        // Defer one macrotask before advancing. The business event almost
-        // always coincides with a host state change (a new `@for` row, a
-        // panel opening) whose DOM has NOT been rendered yet inside this
-        // synchronous emit. Resolving the next step's target now would match a
-        // stale DOM — e.g. a floating `[$last]` marker still sitting on the
-        // previous row, so the highlight lands one element behind. Yielding
-        // lets the framework flush its change detection first.
-        setTimeout(() => {
-          if (this.isStale(token)) return;
-          this.next();
-        }, 0);
+        this.scheduleEventAdvance(token);
       });
 
     // Never strand the user on an event that never fires.
@@ -448,6 +443,44 @@ export class OnboardingOrchestrator {
         () => this.handleWaitTimeout(step, token),
         timeout,
       );
+    }
+  }
+
+  /**
+   * Advances after a business event — but only once the host has *rendered*
+   * the DOM change that event represents.
+   *
+   * The event almost always coincides with a host state change (a new `@for`
+   * row, a panel opening) whose DOM isn't in place yet inside the synchronous
+   * emit. Resolving the next step's target now would match a stale DOM — a
+   * floating `[$last]` marker still sitting on the previous row, so the
+   * highlight lands one element behind. A plain macrotask isn't enough either:
+   * under zone.js event coalescing the host's change detection is deferred to
+   * an animation frame, which runs *after* a `setTimeout(0)`. {@link
+   * afterNextRender} fires after that render lands, so target resolution sees
+   * the final DOM.
+   */
+  private scheduleEventAdvance(token: number): void {
+    const advance = () => {
+      if (this.isStale(token)) return;
+      this.next();
+    };
+    const schedule = () => {
+      try {
+        afterNextRender(advance, { injector: this.injector });
+      } catch {
+        // No render lifecycle to hook (bare service test / SSR) — fall back to
+        // a macrotask so the tour still advances rather than stalling.
+        setTimeout(advance, 0);
+      }
+    };
+    // If the event was emitted outside Angular's zone (a socket push, a bare
+    // async callback), re-enter so a change detection — and therefore a
+    // render — is actually scheduled; otherwise afterNextRender never fires.
+    if (this.zone && !NgZone.isInAngularZone()) {
+      this.zone.run(schedule);
+    } else {
+      schedule();
     }
   }
 

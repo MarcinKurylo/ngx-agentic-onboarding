@@ -1,5 +1,6 @@
 /// <reference types="jasmine" />
 import { DOCUMENT } from '@angular/common';
+import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 
@@ -56,7 +57,13 @@ class FakeRenderer implements OnboardingRenderer {
   }
 }
 
-const flush = () => new Promise<void>((r) => setTimeout(r, 0));
+// Advancing after a business event is gated behind `afterNextRender`, so a
+// render has to run for the tour to move on. Tick the ApplicationRef to fire
+// those callbacks, then yield a macrotask for the async transition pipeline.
+const flush = async () => {
+  TestBed.inject(ApplicationRef).tick();
+  await new Promise<void>((r) => setTimeout(r, 0));
+};
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** Builds a config; steps default to target-less (center) steps. */
