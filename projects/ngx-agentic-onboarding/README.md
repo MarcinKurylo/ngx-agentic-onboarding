@@ -163,6 +163,26 @@ orchestrator.reset(appOnboarding);               // show it again
 Set `persist: false` on the config to opt out. Swap the backend by providing
 `ONBOARDING_STORAGE`.
 
+## Multiple tours
+
+An app can define any number of tours — each its own `OnboardingConfig` with a
+distinct `id`. The orchestrator is a singleton (one overlay at a time), and its
+methods all accept a config, so you steer every tour through the one instance.
+Persistence is keyed per `id` + `version`, so completions never bleed across
+tours:
+
+```ts
+export const dashboardTour: OnboardingConfig = { version: '1.0.0', id: 'dashboard', steps: [/*…*/] };
+export const billingTour:   OnboardingConfig = { version: '2.1.0', id: 'billing',   steps: [/*…*/] };
+
+orchestrator.startIfNotCompleted(dashboardTour);
+orchestrator.autoStart(billingTour);
+orchestrator.hasCompleted(billingTour); // independent of dashboardTour
+```
+
+Bumping one tour's `version` re-shows only that tour. Starting a new tour
+cleanly tears down any tour already running.
+
 ## Theming
 
 You control the look entirely from your own SCSS — the library ships a default,
@@ -193,6 +213,29 @@ and you override it. Every popover carries a stable `ngx-onboarding` class.
 Per-step styling: set `popoverClass: 'step-finish'` on a step and scope your rules
 to it (as above).
 
+## Lifecycle events
+
+The engine publishes its own events on the same `OnboardingEventBus`, namespaced
+with an `onboarding:` prefix (see `OnboardingLifecycleEvent`). Subscribe for
+analytics, or to react to the tour:
+
+```ts
+bus.on(OnboardingLifecycleEvent.StepShown).subscribe((p) => track('step', p));
+```
+
+| Event | Fires when |
+| --- | --- |
+| `TourStarted` | A tour run begins. |
+| `TourCompleted` | The last step is finished. |
+| `TourSkipped` | The user/code aborts before completion. |
+| `StepShown` | A step is painted (after routing/DOM resolution). |
+| `StepCompleted` | A step is advanced away from. |
+| `StepSkipped` | A step is skipped by its `enabled` predicate. |
+| `StepWaiting` | A step starts waiting on a business event. |
+| `StepWaitTimeout` | A `waitForEvent` wait exceeded its timeout. |
+| `StepTargetLost` | A visible step's target was detached from the DOM. |
+| `StepError` | A recoverable error (e.g. target never appeared). |
+
 ## License
 
-MIT
+[MIT](./LICENSE) © Marcin Kuryło

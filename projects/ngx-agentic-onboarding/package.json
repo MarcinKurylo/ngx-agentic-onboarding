@@ -1,6 +1,30 @@
 {
   "name": "ngx-agentic-onboarding",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "Config-driven, event-driven onboarding & product-tour engine for Angular. Define the whole tour in one typed object; the engine coordinates async transitions (business events, routing, DOM) and paints the overlay with Driver.js.",
+  "keywords": [
+    "angular",
+    "onboarding",
+    "product-tour",
+    "guided-tour",
+    "walkthrough",
+    "user-onboarding",
+    "tour",
+    "driver.js",
+    "signals",
+    "event-driven"
+  ],
+  "author": "Marcin Kuryło <me@marcinkurylo.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/MarcinKurylo/ngx-agentic-onboarding#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarcinKurylo/ngx-agentic-onboarding.git",
+    "directory": "projects/ngx-agentic-onboarding"
+  },
+  "bugs": {
+    "url": "https://github.com/MarcinKurylo/ngx-agentic-onboarding/issues"
+  },
   "peerDependencies": {
     "@angular/common": "^19.2.0",
     "@angular/core": "^19.2.0",
