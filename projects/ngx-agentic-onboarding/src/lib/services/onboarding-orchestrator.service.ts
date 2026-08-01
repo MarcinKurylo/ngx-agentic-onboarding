@@ -49,7 +49,15 @@ export class OnboardingOrchestrator {
   private readonly renderer = inject(ONBOARDING_RENDERER, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
 
-  private config: OnboardingConfig | null = null;
+  /**
+   * The loaded config, held in a signal so that every `computed()` derived
+   * from it (totalSteps, currentStep, progress) reacts when it changes. Read
+   * everywhere via the {@link config} getter, which tracks the signal.
+   */
+  private readonly _config = signal<OnboardingConfig | null>(null);
+  private get config(): OnboardingConfig | null {
+    return this._config();
+  }
   private options: ResolvedOnboardingOptions = DEFAULT_ONBOARDING_OPTIONS;
 
   /**
@@ -174,7 +182,7 @@ export class OnboardingOrchestrator {
    */
   private load(config: OnboardingConfig): void {
     this.teardown('idle');
-    this.config = config;
+    this._config.set(config);
     this.options = { ...DEFAULT_ONBOARDING_OPTIONS, ...(config.options ?? {}) };
   }
 
