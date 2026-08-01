@@ -157,7 +157,7 @@ export class OnboardingOrchestrator {
     if (target >= this.totalSteps()) {
       this.complete();
     } else {
-      void this.goTo(target);
+      void this.runTransition(target, 1);
     }
   }
 
@@ -168,7 +168,7 @@ export class OnboardingOrchestrator {
     }
     const target = this._index() - 1;
     if (target >= 0) {
-      void this.goTo(target);
+      void this.runTransition(target, -1);
     }
   }
 
@@ -236,7 +236,7 @@ export class OnboardingOrchestrator {
     if (!this.config || index < 0 || index >= this.config.steps.length) {
       return;
     }
-    await this.runTransition(index);
+    await this.runTransition(index, 1);
   }
 
   // --- Transition pipeline ----------------------------------------------
@@ -255,12 +255,27 @@ export class OnboardingOrchestrator {
    * Each stage re-validates the transition token so that a newer transition
    * (or a teardown) silently supersedes an in-flight one instead of racing.
    */
-  private async runTransition(index: number): Promise<void> {
+  private async runTransition(
+    index: number,
+    direction: 1 | -1,
+  ): Promise<void> {
     const token = ++this.transitionToken;
     this.cancelPendingWait();
     this.stopTargetWatch();
 
-    const step = this.config!.steps[index];
+    // Resolve the step we'll actually land on, skipping any `enabled:false`
+    // steps in the direction of travel. Done first so a fully-skipped move
+    // never fires the outgoing step's hooks or disturbs the current view.
+    const landing = await this.resolveEnabledIndex(index, direction, token);
+    if (this.isStale(token)) return;
+    if (landing === null) {
+      // Forward: nothing enabled remains -> the tour is done. Backward: there
+      // is nowhere earlier to go, so stay on the current step.
+      if (direction === 1) this.complete();
+      return;
+    }
+
+    const step = this.config!.steps[landing];
     const previous = this.currentStep();
     this._status.set('running');
 
@@ -275,7 +290,7 @@ export class OnboardingOrchestrator {
       }
 
       // 2. before-hook of the incoming step.
-      await this.runHook(step.beforeStep, index);
+      await this.runHook(step.beforeStep, landing);
       if (this.isStale(token)) return;
 
       // 3. drive the router, if requested, and await settling.
@@ -289,7 +304,7 @@ export class OnboardingOrchestrator {
       if (this.isStale(token)) return;
 
       if (!target && step.targetSelector && !step.optional) {
-        this.handleMissingTarget(step, index);
+        this.handleMissingTarget(step, landing);
         if (this.options.abortOnMissingTarget) return;
       }
 
@@ -300,9 +315,9 @@ export class OnboardingOrchestrator {
       }
 
       // 6. commit: this is the point of no return for this transition.
-      this._index.set(index);
-      this.active = { step, target, index, token };
-      this.render(step, target, index);
+      this._index.set(landing);
+      this.active = { step, target, index: landing, token };
+      this.render(step, target, landing);
       this.bus.emit(OnboardingLifecycleEvent.StepShown, { id: step.id });
       // Keep the highlight anchored even if the host re-renders the target away.
       this.watchTarget(step, target, token);
@@ -320,6 +335,58 @@ export class OnboardingOrchestrator {
         error: error instanceof Error ? error.message : String(error),
       });
       console.error('[ngx-agentic-onboarding] step transition failed:', error);
+    }
+  }
+
+  /**
+   * Walks from `from` in `direction`, skipping steps whose {@link
+   * OnboardingStep.enabled} predicate resolves falsy, and returns the first
+   * step that applies — or `null` if the walk runs off either end. Returns
+   * `null` too if a newer transition supersedes this one mid-await.
+   */
+  private async resolveEnabledIndex(
+    from: number,
+    direction: 1 | -1,
+    token: number,
+  ): Promise<number | null> {
+    const steps = this.config!.steps;
+    for (let i = from; i >= 0 && i < steps.length; i += direction) {
+      const step = steps[i];
+      if (!step.enabled) {
+        return i;
+      }
+      const enabled = await this.evalEnabled(step, i);
+      if (this.isStale(token)) return null;
+      if (enabled) {
+        return i;
+      }
+      this.bus.emit(OnboardingLifecycleEvent.StepSkipped, {
+        id: step.id,
+        index: i,
+      });
+    }
+    return null;
+  }
+
+  /** Evaluates a step's `enabled` predicate, failing open (show) on error. */
+  private async evalEnabled(
+    step: OnboardingStep,
+    index: number,
+  ): Promise<boolean> {
+    try {
+      const result = await step.enabled!({
+        step,
+        index,
+        total: this.totalSteps(),
+      });
+      return result !== false;
+    } catch (error) {
+      console.warn(
+        `[ngx-agentic-onboarding] enabled() for step "${step.id}" threw; ` +
+          'showing the step.',
+        error,
+      );
+      return true;
     }
   }
 

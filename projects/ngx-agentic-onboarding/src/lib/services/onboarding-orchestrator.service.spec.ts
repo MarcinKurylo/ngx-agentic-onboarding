@@ -322,6 +322,137 @@ describe('OnboardingOrchestrator', () => {
     });
   });
 
+  describe('conditional steps (enabled)', () => {
+    it('skips a disabled step going forward', async () => {
+      orchestrator.start(
+        config([
+          { id: 's0' },
+          { id: 's1', enabled: () => false },
+          { id: 's2' },
+        ]),
+      );
+      await flush();
+      orchestrator.next(); // targets s1 (disabled) -> lands on s2
+      await flush();
+
+      expect(orchestrator.currentIndex()).toBe(2);
+      expect(orchestrator.currentStep()?.id).toBe('s2');
+    });
+
+    it('skips a disabled step going backward', async () => {
+      orchestrator.start(
+        config([
+          { id: 's0' },
+          { id: 's1', enabled: () => false },
+          { id: 's2' },
+        ]),
+      );
+      await flush();
+      orchestrator.next();
+      await flush();
+      expect(orchestrator.currentIndex()).toBe(2);
+
+      orchestrator.prev(); // targets s1 (disabled) -> lands on s0
+      await flush();
+      expect(orchestrator.currentIndex()).toBe(0);
+    });
+
+    it('awaits an async enabled() predicate', async () => {
+      orchestrator.start(
+        config([
+          { id: 's0' },
+          { id: 's1', enabled: () => Promise.resolve(false) },
+          { id: 's2' },
+        ]),
+      );
+      await flush();
+      orchestrator.next();
+      await flush();
+
+      expect(orchestrator.currentStep()?.id).toBe('s2');
+    });
+
+    it('skips a disabled first step when starting', async () => {
+      orchestrator.start(
+        config([{ id: 's0', enabled: () => false }, { id: 's1' }]),
+      );
+      await flush();
+
+      expect(orchestrator.currentStep()?.id).toBe('s1');
+    });
+
+    it('emits StepSkipped for a disabled step and never runs its hooks', async () => {
+      const seen = events();
+      const hookRan = jasmine.createSpy('beforeStep');
+      orchestrator.start(
+        config([
+          { id: 's0' },
+          { id: 's1', enabled: () => false, beforeStep: hookRan },
+          { id: 's2' },
+        ]),
+      );
+      await flush();
+      orchestrator.next();
+      await flush();
+
+      expect(seen).toContain(OnboardingLifecycleEvent.StepSkipped);
+      expect(hookRan).not.toHaveBeenCalled();
+    });
+
+    it('completes when every remaining step is disabled', async () => {
+      const seen = events();
+      orchestrator.start(
+        config([{ id: 's0' }, { id: 's1', enabled: () => false }]),
+      );
+      await flush();
+      orchestrator.next(); // nothing enabled ahead -> complete
+      await flush();
+
+      expect(orchestrator.status()).toBe('completed');
+      expect(seen).toContain(OnboardingLifecycleEvent.TourCompleted);
+    });
+
+    it('passes step/index/total context to enabled()', async () => {
+      const contexts: { index: number; total: number }[] = [];
+      orchestrator.start(
+        config([
+          { id: 's0' },
+          {
+            id: 's1',
+            enabled: (c) => {
+              contexts.push({ index: c.index, total: c.total });
+              return true;
+            },
+          },
+        ]),
+      );
+      await flush();
+      orchestrator.next();
+      await flush();
+
+      expect(contexts[0]).toEqual({ index: 1, total: 2 });
+    });
+
+    it('shows the step (fail-open) when enabled() throws', async () => {
+      orchestrator.start(
+        config([
+          { id: 's0' },
+          {
+            id: 's1',
+            enabled: () => {
+              throw new Error('boom');
+            },
+          },
+        ]),
+      );
+      await flush();
+      orchestrator.next();
+      await flush();
+
+      expect(orchestrator.currentStep()?.id).toBe('s1');
+    });
+  });
+
   it('navigates via the router before showing a step', async () => {
     orchestrator.start(
       config([{ id: 's0' }, { id: 's1', navigateToRoute: '/dash' }]),

@@ -40,6 +40,11 @@ export enum OnboardingLifecycleEvent {
   StepShown = 'onboarding:step_shown',
   /** A step has been advanced away from (next/prev/event). */
   StepCompleted = 'onboarding:step_completed',
+  /**
+   * A step was skipped without being shown because its
+   * {@link OnboardingStep.enabled} predicate returned `false`.
+   */
+  StepSkipped = 'onboarding:step_skipped',
   /** The engine is waiting on a business event to unblock a step. */
   StepWaiting = 'onboarding:step_waiting',
   /**

@@ -65,6 +65,22 @@ export interface OnboardingStep {
   readonly placement?: OnboardingStepPlacement;
 
   /**
+   * Predicate deciding whether this step applies to the current user/context.
+   * Evaluated (and awaited) right before the engine would land on the step; a
+   * `false` result skips it entirely — its hooks never run — and the engine
+   * continues in the direction of travel (forward on next, backward on prev).
+   * May be async, e.g. to check a feature flag or a remote entitlement. When it
+   * throws, the step is shown (fail-open) so onboarding content is never lost.
+   *
+   * @example
+   * ```ts
+   * { id: 'invite-team', targetSelector: '#invite',
+   *   enabled: ({ }) => user.plan === 'team' }
+   * ```
+   */
+  readonly enabled?: (context: OnboardingHookContext) => boolean | Promise<boolean>;
+
+  /**
    * Extra CSS class(es) applied to this step's popover, on top of the global
    * base class (`ngx-onboarding`) and any renderer-level class. Use it to theme
    * individual steps from your own SCSS.

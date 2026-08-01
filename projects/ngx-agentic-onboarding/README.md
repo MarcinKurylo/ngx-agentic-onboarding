@@ -79,6 +79,7 @@ export class AppComponent {
 | Option | Effect |
 | --- | --- |
 | `targetSelector` | Element to highlight (omit for a centered step). |
+| `enabled` | Predicate (sync/async) — skip the step when it returns false. |
 | `waitForEvent` | Pause until this event fires on the bus; hides "Next". |
 | `eventFilter` | Only advance when the event payload matches. |
 | `waitForEventTimeoutMs` | Give up waiting after N ms (see Resilience). |
@@ -86,6 +87,25 @@ export class AppComponent {
 | `delayMs` / `waitForSelectorTimeoutMs` | Timing for async DOM. |
 | `beforeStep` / `afterStep` | Awaited lifecycle hooks. |
 | `popoverClass` | Extra CSS class for theming this step. |
+
+## Conditional steps
+
+Steps can opt out of a tour per user or context — no need to fork the config.
+Give a step an `enabled` predicate (sync or async); when it resolves falsy the
+engine skips it entirely (its hooks never run) and continues in the direction of
+travel. Skipped steps emit `onboarding:step_skipped`.
+
+```ts
+steps: [
+  { id: 'welcome', targetSelector: '#welcome' },
+  { id: 'invite-team', targetSelector: '#invite',
+    enabled: () => user.plan === 'team' },              // sync
+  { id: 'beta-panel', targetSelector: '#beta',
+    enabled: () => flags.isOn('beta-onboarding') },     // async ok too
+]
+```
+
+If the predicate throws, the step is shown (fail-open) so content is never lost.
 
 ## Resilience
 
