@@ -140,7 +140,14 @@ moves on automatically; `skip` ends the tour. Every timeout emits an
 the host detaches it (e.g. a list re-renders), the engine re-resolves the same
 selector and re-paints in place; if it never returns, the tour closes cleanly
 (`onboarding:step_target_lost`, then `onboarding:step_error`). No stale highlight
-left anchored to nothing.
+left anchored to nothing — the overlay is dropped while the element is missing,
+never ghosting over empty space.
+
+**Route-aware back navigation.** The engine remembers which route each step was
+shown on. Stepping back to a step that lived on an earlier route restores that
+route first (even if the step declares no `navigateToRoute`), so its target is
+actually there. Redundant navigations are skipped when you're already on the
+right route.
 
 ## Persistence
 

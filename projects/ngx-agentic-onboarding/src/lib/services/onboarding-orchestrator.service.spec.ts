@@ -71,7 +71,7 @@ describe('OnboardingOrchestrator', () => {
   let orchestrator: OnboardingOrchestrator;
   let bus: OnboardingEventBus;
   let renderer: FakeRenderer;
-  let router: { navigateByUrl: jasmine.Spy };
+  let router: { url: string; navigateByUrl: jasmine.Spy };
   let storage: FakeStorage;
   const createdEls: Element[] = [];
   const KEY = 'ngx-onboarding:test:1.0.0';
@@ -93,7 +93,15 @@ describe('OnboardingOrchestrator', () => {
   beforeEach(() => {
     renderer = new FakeRenderer();
     storage = new FakeStorage();
-    router = { navigateByUrl: jasmine.createSpy('navigateByUrl').and.resolveTo(true) };
+    router = {
+      url: '/',
+      navigateByUrl: jasmine
+        .createSpy('navigateByUrl')
+        .and.callFake((u: string) => {
+          router.url = u;
+          return Promise.resolve(true);
+        }),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -301,6 +309,41 @@ describe('OnboardingOrchestrator', () => {
       expect(orchestrator.status()).toBe('running');
     });
 
+    it('re-points instantly (no hide) when swapped within the same tick', async () => {
+      const el = addTarget('welcome');
+      orchestrator.start(config([{ id: 's0', targetSelector: '#welcome' }]));
+      await flush();
+      const hidesBefore = renderer.hideCount;
+
+      el.remove();
+      const el2 = addTarget('welcome'); // same synchronous tick
+      await wait(40);
+
+      expect(renderer.hideCount).toBe(hidesBefore); // no visible gap
+      expect(renderer.last.target).toBe(el2);
+    });
+
+    it('hides the overlay while a lost target is missing (no ghost highlight)', async () => {
+      const el = addTarget('welcome');
+      orchestrator.start(
+        config([{ id: 's0', targetSelector: '#welcome' }], {
+          waitForSelectorTimeoutMs: 300,
+          selectorPollIntervalMs: 10,
+        }),
+      );
+      await flush();
+      const hidesBefore = renderer.hideCount;
+
+      el.remove(); // gone, nothing to replace it yet
+      await wait(40);
+      expect(renderer.hideCount).toBeGreaterThan(hidesBefore); // dropped, not ghosting
+
+      const el2 = addTarget('welcome'); // returns a moment later
+      await wait(40);
+      expect(renderer.last.target).toBe(el2);
+      expect(orchestrator.status()).toBe('running');
+    });
+
     it('closes the tour cleanly when the target never returns', async () => {
       const seen = events();
       const el = addTarget('welcome');
@@ -463,6 +506,42 @@ describe('OnboardingOrchestrator', () => {
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/dash');
     expect(orchestrator.currentIndex()).toBe(1);
+  });
+
+  describe('route memory (back navigation)', () => {
+    it('restores the route a step was shown on when stepping back', async () => {
+      router.url = '/home';
+      orchestrator.start(
+        config([
+          { id: 's0' }, // shown on /home
+          { id: 's1', navigateToRoute: '/dash' },
+        ]),
+      );
+      await flush();
+      expect(router.url).toBe('/home');
+
+      orchestrator.next(); // -> /dash
+      await flush();
+      expect(router.url).toBe('/dash');
+      expect(orchestrator.currentIndex()).toBe(1);
+
+      router.navigateByUrl.calls.reset();
+      orchestrator.prev(); // back to s0, which lived on /home
+      await flush();
+
+      expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
+      expect(router.url).toBe('/home');
+      expect(orchestrator.currentIndex()).toBe(0);
+    });
+
+    it('does not re-navigate when already on the desired route', async () => {
+      router.url = '/dash';
+      orchestrator.start(config([{ id: 's0', navigateToRoute: '/dash' }]));
+      await flush();
+
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      expect(orchestrator.currentIndex()).toBe(0);
+    });
   });
 
   it('resolves a present target element and passes it to the renderer', async () => {

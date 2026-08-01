@@ -89,6 +89,13 @@ export class OnboardingOrchestrator {
     token: number;
   } | null = null;
 
+  /**
+   * Router URL each step was last shown on, keyed by step index. Lets the
+   * engine restore the right route when moving *backward* to a step that lived
+   * on an earlier route but declares no `navigateToRoute` of its own.
+   */
+  private readonly shownAtUrl = new Map<number, string>();
+
   // --- Reactive state ----------------------------------------------------
 
   private readonly _index = signal(-1);
@@ -246,6 +253,7 @@ export class OnboardingOrchestrator {
    */
   private load(config: OnboardingConfig): void {
     this.teardown('idle');
+    this.shownAtUrl.clear();
     this._config.set(config);
     this.options = { ...DEFAULT_ONBOARDING_OPTIONS, ...(config.options ?? {}) };
   }
@@ -293,9 +301,21 @@ export class OnboardingOrchestrator {
       await this.runHook(step.beforeStep, landing);
       if (this.isStale(token)) return;
 
-      // 3. drive the router, if requested, and await settling.
-      if (step.navigateToRoute) {
-        await this.navigate(step.navigateToRoute);
+      // 3. drive the router. Prefer the step's explicit route; otherwise, when
+      //    stepping back to a step shown earlier on a different route, restore
+      //    that route so its target actually exists in the DOM.
+      const desiredRoute =
+        step.navigateToRoute ?? this.shownAtUrl.get(landing);
+      if (
+        desiredRoute &&
+        this.router &&
+        this.router.url !== desiredRoute
+      ) {
+        // The current highlight's element is about to be torn away by the
+        // route change — drop the overlay first so it never lingers over
+        // empty space while the new route/target settles.
+        this.safeHide();
+        await this.navigate(desiredRoute);
         if (this.isStale(token)) return;
       }
 
@@ -316,6 +336,9 @@ export class OnboardingOrchestrator {
 
       // 6. commit: this is the point of no return for this transition.
       this._index.set(landing);
+      if (this.router) {
+        this.shownAtUrl.set(landing, this.router.url);
+      }
       this.active = { step, target, index: landing, token };
       this.render(step, target, landing);
       this.bus.emit(OnboardingLifecycleEvent.StepShown, { id: step.id });
@@ -554,6 +577,15 @@ export class OnboardingOrchestrator {
     }
   }
 
+  /** Hides the overlay, swallowing renderer errors. */
+  private safeHide(): void {
+    try {
+      this.renderer?.hide();
+    } catch (error) {
+      console.error('[ngx-agentic-onboarding] renderer.hide() failed:', error);
+    }
+  }
+
   private complete(): void {
     this.bus.emit(OnboardingLifecycleEvent.TourCompleted, {
       id: this.config?.id,
@@ -637,13 +669,23 @@ export class OnboardingOrchestrator {
       selector: step.targetSelector,
     });
 
+    // Same-tick swap (a list re-render replacing the node): re-point instantly,
+    // no visible gap.
+    const immediate =
+      this.document?.querySelector?.(step.targetSelector!) ?? null;
+    if (immediate) {
+      this.repaintOnto(step, immediate, token);
+      return;
+    }
+
+    // Otherwise drop the overlay so it never highlights the empty space the
+    // element left behind, then wait (up to the selector timeout) for it back.
+    this.safeHide();
     const recovered = await this.resolveTarget(step);
     if (this.isStale(token)) return;
 
     if (recovered) {
-      if (this.active) this.active.target = recovered;
-      this.render(step, recovered, this._index(), this._status() === 'waiting');
-      this.watchTarget(step, recovered, token);
+      this.repaintOnto(step, recovered, token);
       return;
     }
 
@@ -656,6 +698,17 @@ export class OnboardingOrchestrator {
         `"${step.targetSelector}" was removed and never came back; closing.`,
     );
     this.teardown('skipped');
+  }
+
+  /** Re-renders the current step onto a fresh target element and re-arms the watch. */
+  private repaintOnto(
+    step: OnboardingStep,
+    target: Element,
+    token: number,
+  ): void {
+    if (this.active) this.active.target = target;
+    this.render(step, target, this._index(), this._status() === 'waiting');
+    this.watchTarget(step, target, token);
   }
 
   /** Disconnects the target observer, if any. */
@@ -683,11 +736,7 @@ export class OnboardingOrchestrator {
     this.active = null;
     this._index.set(-1);
     this._status.set(status);
-    try {
-      this.renderer?.hide();
-    } catch (error) {
-      console.error('[ngx-agentic-onboarding] renderer.hide() failed:', error);
-    }
+    this.safeHide();
   }
 
   /** True when `token` no longer identifies the active transition. */
