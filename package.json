@@ -9,7 +9,12 @@
     "watch": "ng build ngx-agentic-onboarding --watch --configuration development",
     "test": "ng test ngx-agentic-onboarding --watch=false",
     "test:coverage": "ng test ngx-agentic-onboarding --watch=false --code-coverage --karma-config karma.conf.js",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "lint": "ng lint",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,html}": "eslint --fix"
   },
   "private": true,
   "dependencies": {
@@ -32,13 +37,18 @@
     "@angular/compiler-cli": "^19.2.0",
     "@playwright/test": "^1.62.1",
     "@types/jasmine": "~5.1.0",
+    "angular-eslint": "19.8.1",
+    "eslint": "^9.28.0",
+    "husky": "^9.1.7",
     "jasmine-core": "~5.6.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "lint-staged": "^17.3.0",
     "ng-packagr": "^19.2.0",
-    "typescript": "~5.7.2"
+    "typescript": "~5.7.2",
+    "typescript-eslint": "8.33.1"
   }
 }

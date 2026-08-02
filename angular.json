@@ -37,6 +37,16 @@
               "zone.js/testing"
             ]
           }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/ngx-agentic-onboarding/**/*.ts",
+              "projects/ngx-agentic-onboarding/**/*.html"
+            ],
+            "eslintConfig": "projects/ngx-agentic-onboarding/eslint.config.js"
+          }
         }
       }
     },
@@ -131,6 +141,16 @@
               "projects/demo/src/styles.scss"
             ],
             "scripts": []
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/demo/**/*.ts",
+              "projects/demo/**/*.html"
+            ],
+            "eslintConfig": "projects/demo/eslint.config.js"
           }
         }
       }

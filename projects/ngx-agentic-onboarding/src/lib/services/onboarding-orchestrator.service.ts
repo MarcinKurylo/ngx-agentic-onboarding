@@ -600,7 +600,7 @@ export class OnboardingOrchestrator {
     step: OnboardingStep,
     target: Element | null,
     index: number,
-    waiting: boolean = !!step.waitForEvent,
+    waiting = !!step.waitForEvent,
   ): void {
     if (!this.renderer) {
       return;
