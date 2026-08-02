@@ -121,8 +121,11 @@ interface OnboardingConfig {
 interface OnboardingStep {
   id: string;                       // stable, unique within the tour
   targetSelector?: string;          // element to highlight; omit for a centered step
-  title?: string;
-  content?: string;                 // popover body (plain text)
+  title?: string;                   // heading; escaped as plain text by default
+  content?: string;                 // popover body; escaped as plain text by default —
+                                    //   safe to interpolate user/server data
+  allowHtml?: boolean;              // opt title+content OUT of escaping → raw HTML.
+                                    //   trusted, developer-authored strings only (XSS sink)
   placement?: 'top'|'top-start'|'top-end'|'bottom'|'bottom-start'|'bottom-end'
             |'left'|'right'|'auto'|'center';  // 'center' = element-less modal
   enabled?: (ctx: {step; index; total}) => boolean | Promise<boolean>;  // skip when false
