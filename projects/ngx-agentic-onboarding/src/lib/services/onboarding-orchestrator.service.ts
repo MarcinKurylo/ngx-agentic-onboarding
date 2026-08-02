@@ -73,6 +73,13 @@ export class OnboardingOrchestrator {
    */
   private transitionToken = 0;
 
+  /**
+   * True while a transition is parked mid-pipeline. Guards {@link next}/{@link
+   * prev} so a re-entrant call (a double-click) can't read the pre-commit index
+   * and re-run the same move, firing its hooks twice.
+   */
+  private transitionInFlight = false;
+
   /** Active subscription waiting on a step's business event, if any. */
   private waitSub: Subscription | null = null;
 
@@ -162,7 +169,7 @@ export class OnboardingOrchestrator {
 
   /** Advance to the next step, completing the tour after the last one. */
   next(): void {
-    if (!this.isActive()) {
+    if (!this.isActive() || this.transitionInFlight) {
       return;
     }
     const target = this._index() + 1;
@@ -175,7 +182,7 @@ export class OnboardingOrchestrator {
 
   /** Return to the previous step (no-op on the first step). */
   prev(): void {
-    if (!this.isActive()) {
+    if (!this.isActive() || this.transitionInFlight) {
       return;
     }
     const target = this._index() - 1;
@@ -273,6 +280,25 @@ export class OnboardingOrchestrator {
     direction: 1 | -1,
   ): Promise<void> {
     const token = ++this.transitionToken;
+    // Mark the transition in-flight for the whole pipeline so a re-entrant
+    // next()/prev() is ignored until it settles. Only the current transition
+    // clears the flag, so a superseded one bailing out can't unblock its
+    // successor mid-flight.
+    this.transitionInFlight = true;
+    try {
+      await this.transitionTo(index, direction, token);
+    } finally {
+      if (token === this.transitionToken) {
+        this.transitionInFlight = false;
+      }
+    }
+  }
+
+  private async transitionTo(
+    index: number,
+    direction: 1 | -1,
+    token: number,
+  ): Promise<void> {
     this.cancelPendingWait();
     this.stopTargetWatch();
 
@@ -654,6 +680,14 @@ export class OnboardingOrchestrator {
   }
 
   private complete(): void {
+    // A run that never committed a step (e.g. every step gated off by its
+    // enabled() predicate at start) isn't "completed": emitting and persisting
+    // it would burn the tour so it can never appear once the predicates flip.
+    // Settle quietly back to idle instead.
+    if (this._index() < 0) {
+      this.teardown('idle');
+      return;
+    }
     this.bus.emit(OnboardingLifecycleEvent.TourCompleted, {
       id: this.config?.id,
     });
