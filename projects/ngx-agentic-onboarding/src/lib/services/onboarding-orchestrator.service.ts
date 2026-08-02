@@ -282,9 +282,22 @@ export class OnboardingOrchestrator {
     const landing = await this.resolveEnabledIndex(index, direction, token);
     if (this.isStale(token)) return;
     if (landing === null) {
-      // Forward: nothing enabled remains -> the tour is done. Backward: there
-      // is nowhere earlier to go, so stay on the current step.
-      if (direction === 1) this.complete();
+      if (direction === 1) {
+        // Forward: nothing enabled remains -> the tour is done.
+        this.complete();
+      } else if (this.active) {
+        // Backward with nowhere earlier to go: this transition already retired
+        // the visible step's wait/watch (and bumped the token) at the top, so
+        // re-arm them under the current token. Otherwise the step stays on
+        // screen but deadlocks — its business event is no longer listened for
+        // and its target no longer watched — with skip() the only way out.
+        const { step, target } = this.active;
+        this.active = { step, target, index: this._index(), token };
+        this.watchTarget(step, target, token);
+        if (step.waitForEvent && this._status() === 'waiting') {
+          this.waitForBusinessEvent(step, token);
+        }
+      }
       return;
     }
 
@@ -330,7 +343,18 @@ export class OnboardingOrchestrator {
 
       if (!target && step.targetSelector && !step.optional) {
         this.handleMissingTarget(step, landing);
-        if (this.options.abortOnMissingTarget) return;
+        if (this.options.abortOnMissingTarget) {
+          // Contract: a missing non-optional target aborts the whole tour. End
+          // it cleanly — overlay down, event stream closed — instead of leaving
+          // the engine "active" forever with no popover on screen. Not
+          // persisted, so the tour can still run once the target exists.
+          this.bus.emit(OnboardingLifecycleEvent.TourSkipped, {
+            id: this.config?.id,
+            atIndex: landing,
+          });
+          this.teardown('skipped');
+          return;
+        }
       }
 
       // 5. optional settle delay for entry animations.

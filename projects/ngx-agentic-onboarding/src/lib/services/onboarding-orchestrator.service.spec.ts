@@ -713,6 +713,57 @@ describe('OnboardingOrchestrator', () => {
     });
   });
 
+  describe('never leaves a tour active with no way out', () => {
+    it('re-arms a waiting step when prev() has nowhere to land (regression: deadlock)', async () => {
+      orchestrator.start(
+        config([
+          { id: 's0', enabled: () => false },
+          { id: 's1', waitForEvent: 'X' },
+          { id: 's2' },
+        ]),
+      );
+      await flush();
+      // s0 is disabled, so start lands on s1 and pauses for its event.
+      expect(orchestrator.currentIndex()).toBe(1);
+      expect(orchestrator.status()).toBe('waiting');
+
+      // The Back button is offered (index > 0) but nothing enabled precedes s1.
+      orchestrator.prev();
+      await flush();
+
+      // Still on the same waiting step...
+      expect(orchestrator.currentIndex()).toBe(1);
+      expect(orchestrator.status()).toBe('waiting');
+
+      // ...and crucially the business event still advances it. Before the fix
+      // prev() had cancelled this subscription and nothing re-armed it, so the
+      // step deadlocked with skip() the only escape.
+      bus.emit('X');
+      await flush();
+      expect(orchestrator.currentIndex()).toBe(2);
+    });
+
+    it('aborts cleanly when a non-optional target is missing and abortOnMissingTarget is set (regression: zombie)', async () => {
+      const seen = events();
+      orchestrator.start(
+        config([{ id: 's0', targetSelector: '#never' }], {
+          abortOnMissingTarget: true,
+          waitForSelectorTimeoutMs: 0,
+          selectorPollIntervalMs: 5,
+        }),
+      );
+      await wait(40);
+      await flush();
+
+      // The tour ends instead of staying "active" forever with no popover.
+      expect(orchestrator.isActive()).toBeFalse();
+      expect(orchestrator.status()).toBe('skipped');
+      expect(renderer.shown.length).toBe(0);
+      expect(seen).toContain(OnboardingLifecycleEvent.StepError);
+      expect(seen).toContain(OnboardingLifecycleEvent.TourSkipped);
+    });
+  });
+
   describe('without a DOM (SSR)', () => {
     beforeEach(() => {
       TestBed.resetTestingModule();
