@@ -108,6 +108,11 @@ export class DriverJsRenderer implements OnboardingRenderer {
   private driverInstance: Driver | null = null;
   /** Controls for the step currently on screen; read by the button hooks. */
   private controls: OnboardingRenderControls | null = null;
+  /**
+   * Whether the step on screen may be dismissed via Escape / backdrop. Read by
+   * the destroy hook so a step with `allowSkip: false` can't be closed by key.
+   */
+  private allowCurrentClose = true;
 
   show(
     step: OnboardingStep,
@@ -119,6 +124,7 @@ export class DriverJsRenderer implements OnboardingRenderer {
       return;
     }
     this.controls = controls;
+    this.allowCurrentClose = step.allowSkip !== false;
 
     const instance = this.ensureDriver();
     const isLast = controls.index >= controls.total - 1;
@@ -200,6 +206,21 @@ export class DriverJsRenderer implements OnboardingRenderer {
       onNextClick: () => this.controls?.next(),
       onPrevClick: () => this.controls?.prev(),
       onCloseClick: () => this.controls?.skip(),
+      // Escape and backdrop closes don't go through onCloseClick — Driver.js
+      // routes them here and, because this hook is set, does NOT tear itself
+      // down (we own the destroy). Send them through the orchestrator's single
+      // exit so a keyboard/backdrop dismissal can never leave a dead tour
+      // marked active. A step with allowSkip:false swallows them entirely.
+      onDestroyStarted: () => {
+        if (!this.allowCurrentClose) {
+          return;
+        }
+        if (this.controls) {
+          this.controls.skip();
+        } else {
+          this.driverInstance?.destroy();
+        }
+      },
     });
     return this.driverInstance;
   }

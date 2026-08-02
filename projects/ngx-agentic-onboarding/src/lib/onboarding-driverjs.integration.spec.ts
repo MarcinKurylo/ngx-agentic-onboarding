@@ -187,4 +187,46 @@ describe('Orchestrator + DriverJsRenderer (integration)', () => {
     expect(orchestrator.status()).toBe('completed');
     expect(document.querySelector('.driver-popover')).toBeNull();
   });
+
+  it('closing with Escape routes through the orchestrator (regression: left tour active)', async () => {
+    addTarget('welcome');
+    orchestrator.start(
+      config([
+        { id: 's0', targetSelector: '#welcome', title: 'Witaj' },
+        { id: 's1', title: 'Drugi' },
+      ]),
+    );
+    await flush();
+    expect(orchestrator.isActive()).toBeTrue();
+    expect(document.querySelector('.driver-popover')).not.toBeNull();
+
+    // Driver.js binds its keyboard handler on window.
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Escape' }));
+    await flush();
+
+    // The overlay is gone AND the engine knows the tour ended — before the fix
+    // Driver.js tore down the popover without ever telling the orchestrator, so
+    // it stayed active forever and every launcher stayed disabled.
+    expect(document.querySelector('.driver-popover')).toBeNull();
+    expect(orchestrator.status()).toBe('skipped');
+    expect(orchestrator.isActive()).toBeFalse();
+  });
+
+  it('a step with allowSkip:false cannot be dismissed with Escape', async () => {
+    addTarget('welcome');
+    orchestrator.start(
+      config([
+        { id: 's0', targetSelector: '#welcome', title: 'Obowiązkowy', allowSkip: false },
+      ]),
+    );
+    await flush();
+    expect(orchestrator.isActive()).toBeTrue();
+
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Escape' }));
+    await flush();
+
+    // The mandatory step swallows the Escape: overlay stays, tour stays active.
+    expect(document.querySelector('.driver-popover')).not.toBeNull();
+    expect(orchestrator.isActive()).toBeTrue();
+  });
 });
