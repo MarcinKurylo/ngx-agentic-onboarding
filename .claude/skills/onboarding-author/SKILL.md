@@ -94,14 +94,25 @@ over guessing.
    continues in the direction of travel. Fail-open: if the predicate throws, the
    step is shown.
 
-7. **Write the config and apply the wiring — don't hand it back as homework.**
+7. **Tour-level preconditions — gate at the *trigger*, not per-step.** If the
+   whole tour only makes sense given some precondition (a non-empty list to walk,
+   a logged-in user, a screen that's reachable), check it *before starting* —
+   disable the launch button or guard the trigger (`if (store.items().length === 0)
+   return;`) — never with `enabled`/`optional` on the entry step. The step that
+   *gets you into* the flow (opens the record, navigates to the detail route)
+   can't be skipped: skip it and every later step is stranded on the wrong
+   route/DOM, so per-step gating just moves the breakage downstream. Rule of
+   thumb: `enabled` gates a *branch within* a running tour; the *trigger* gates
+   whether the tour runs at all.
+
+8. **Write the config and apply the wiring — don't hand it back as homework.**
    Create `onboarding.config.ts` and *make* the mechanical edits yourself:
    `provideOnboarding()`, the style imports, the `id`/`data-*` hooks, the
    `bus.emit(…)` calls, and a trigger (see Output). Reserve the closing summary for
    (a) what you changed in the user's code and (b) genuine decisions/assumptions to
    eyeball — never a to-do list of edits you could have made.
 
-8. **Build it.** Run the app's build (`ng build` / `npm run build`) and fix what it
+9. **Build it.** Run the app's build (`ng build` / `npm run build`) and fix what it
    flags. It won't prove events fire, but it catches import/typo breakage — closing
    the loop is part of the job, not a hope. Then tell the user what to click to see
    it live.
@@ -258,7 +269,7 @@ mechanical edits, which you should already have made.
 - Advance on the event; keep a generous `reveal` timeout only as a safety net,
   never as pacing. Every cross-route step gets `navigateToRoute`. Centered steps
   get `placement: 'center'` and no selector.
-- Close the loop: build it (step 8) and give the user a way to replay the tour;
+- Close the loop: build it (step 9) and give the user a way to replay the tour;
   never rely on a one-shot auto-start you can't trigger again.
 - State plainly that the result is a draft to run and eyeball, especially for
   timing and conditionally-rendered targets.
