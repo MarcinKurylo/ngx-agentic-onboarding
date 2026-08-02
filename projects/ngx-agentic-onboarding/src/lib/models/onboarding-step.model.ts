@@ -102,6 +102,24 @@ export interface OnboardingStep {
    */
   readonly popoverClass?: string;
 
+  /**
+   * Overrides the "Next" button text for this step only. Falls back to the
+   * renderer-wide label (configured via `provideOnboarding`) when omitted.
+   */
+  readonly nextLabel?: string;
+
+  /**
+   * Overrides the "Back" button text for this step only. Falls back to the
+   * renderer-wide label when omitted.
+   */
+  readonly prevLabel?: string;
+
+  /**
+   * Overrides the final "Done" button text for this step only (shown when the
+   * step is the last one). Falls back to the renderer-wide label when omitted.
+   */
+  readonly doneLabel?: string;
+
   // --- Asynchronous / event-driven control flags -------------------------
 
   /**

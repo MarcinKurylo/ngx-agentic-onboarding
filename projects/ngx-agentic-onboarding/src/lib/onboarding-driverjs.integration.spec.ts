@@ -234,6 +234,50 @@ describe('Orchestrator + DriverJsRenderer (integration)', () => {
     expect(orchestrator.isActive()).toBeTrue();
   });
 
+  it('uses a per-step button label, falling back to the renderer default', async () => {
+    addTarget('welcome');
+    addTarget('two');
+    orchestrator.start(
+      config([
+        { id: 's0', targetSelector: '#welcome', nextLabel: 'Rozumiem' },
+        { id: 's1', targetSelector: '#two' },
+      ]),
+    );
+    await flush();
+    // s0 overrides the Next label...
+    expect(primaryButtonText()).toBe('Rozumiem');
+
+    orchestrator.next();
+    await flush();
+    // ...s1 has no override, so the last step falls back to the doneLabel.
+    expect(primaryButtonText()).toBe('Zakończ');
+  });
+
+  it('renders a center step as a modal, ignoring its target element', async () => {
+    addTarget('anchor');
+    orchestrator.start(
+      config([
+        {
+          id: 's0',
+          targetSelector: '#anchor',
+          placement: 'center',
+          title: 'Modal',
+        },
+        { id: 's1', title: 'Drugi' },
+      ]),
+    );
+    await flush();
+
+    // The popover shows, but the target is NOT highlighted — a centered modal
+    // ignores it. Driver.js tags the highlighted element with this class.
+    expect(popoverTitle()).toBe('Modal');
+    expect(
+      document.getElementById('anchor')?.classList.contains(
+        'driver-active-element',
+      ),
+    ).toBeFalse();
+  });
+
   it('catches a business event fired synchronously in the StepShown handler (regression: lost)', async () => {
     addTarget('welcome');
     // The host reacts to StepShown by immediately completing the gated action,

@@ -50,21 +50,6 @@ export interface OnboardingOptions {
    * @defaultValue 'reveal'
    */
   readonly onWaitTimeout?: OnWaitTimeoutBehavior;
-
-  /** Text for the "Next" control. @defaultValue 'Next' */
-  readonly nextLabel?: string;
-
-  /** Text for the "Previous" control. @defaultValue 'Back' */
-  readonly prevLabel?: string;
-
-  /** Text for the "Skip/Close" control. @defaultValue 'Skip' */
-  readonly skipLabel?: string;
-
-  /** Text for the final "Done" control. @defaultValue 'Done' */
-  readonly doneLabel?: string;
-
-  /** Whether clicking the backdrop dismisses the tour. @defaultValue false */
-  readonly closeOnBackdropClick?: boolean;
 }
 
 /**
@@ -108,7 +93,7 @@ export interface OnboardingConfig {
    */
   readonly persist?: boolean;
 
-  /** Tour-wide options and default labels/timings. */
+  /** Tour-wide timing and behaviour options. */
   readonly options?: OnboardingOptions;
 }
 
@@ -126,9 +111,4 @@ export const DEFAULT_ONBOARDING_OPTIONS: ResolvedOnboardingOptions = {
   abortOnMissingTarget: false,
   waitForEventTimeoutMs: 0,
   onWaitTimeout: 'reveal',
-  nextLabel: 'Next',
-  prevLabel: 'Back',
-  skipLabel: 'Skip',
-  doneLabel: 'Done',
-  closeOnBackdropClick: false,
 };

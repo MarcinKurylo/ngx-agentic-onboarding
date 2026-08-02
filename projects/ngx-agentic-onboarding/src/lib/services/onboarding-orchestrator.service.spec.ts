@@ -591,18 +591,27 @@ describe('OnboardingOrchestrator', () => {
     expect(renderer.last.target).toBeNull();
   });
 
-  it('does not error for a missing OPTIONAL target', async () => {
+  it('silently skips an OPTIONAL step whose target never appears, moving on', async () => {
     const seen = events();
     orchestrator.start(
-      config([{ id: 's0', targetSelector: '#absent', optional: true }], {
-        waitForSelectorTimeoutMs: 40,
-        selectorPollIntervalMs: 10,
-      }),
+      config(
+        [
+          { id: 's0', targetSelector: '#absent', optional: true },
+          { id: 's1' },
+        ],
+        { waitForSelectorTimeoutMs: 40, selectorPollIntervalMs: 10 },
+      ),
     );
     await wait(120);
+    await flush();
 
+    // No error, and the orphaned step is skipped — not rendered as a modal
+    // anchored to nothing — so the tour lands on the next step instead.
     expect(seen).not.toContain(OnboardingLifecycleEvent.StepError);
-    expect(renderer.last.target).toBeNull();
+    expect(seen).toContain(OnboardingLifecycleEvent.StepSkipped);
+    expect(orchestrator.currentIndex()).toBe(1);
+    expect(renderer.last.step.id).toBe('s1');
+    expect(renderer.shown.some((s) => s.step.id === 's0')).toBeFalse();
   });
 
   it('skip() aborts, tears down and emits TourSkipped', async () => {
@@ -814,6 +823,47 @@ describe('OnboardingOrchestrator', () => {
 
       expect(orchestrator.currentIndex()).toBe(1); // advanced once, not twice
       expect(afterS0).toBe(1); // afterStep ran exactly once
+    });
+  });
+
+  describe('route restore (shownAtUrl)', () => {
+    it('restores the route a routeless step was first shown on, when stepping back', async () => {
+      const cfg = config([
+        { id: 's0', navigateToRoute: '/a' },
+        { id: 's1' }, // no route of its own: first shown on /a
+        { id: 's2', navigateToRoute: '/c' },
+      ]);
+      orchestrator.start(cfg);
+      await flush(); // s0 -> /a
+      orchestrator.next();
+      await flush(); // s1, stays on /a
+      orchestrator.next();
+      await flush(); // s2 -> /c
+      expect(router.url).toBe('/c');
+
+      orchestrator.prev();
+      await flush(); // back to s1 -> restore /a from shownAtUrl
+      expect(orchestrator.currentIndex()).toBe(1);
+      expect(router.url).toBe('/a');
+    });
+
+    it('does not restore stale routes on a fresh forward run (regression: both-directions + no clear)', async () => {
+      const cfg = config([{ id: 's0' }, { id: 's1', navigateToRoute: '/b' }]);
+      orchestrator.start(cfg);
+      await flush(); // s0 on '/'
+      orchestrator.next();
+      await flush(); // s1 -> /b (shownAtUrl now populated)
+      orchestrator.skip(); // teardown must clear shownAtUrl
+
+      router.url = '/elsewhere';
+      router.navigateByUrl.calls.reset();
+      orchestrator.start(cfg);
+      await flush(); // s0 again — no route of its own, moving forward
+
+      // Before the fix, s0 (routeless, forward) consulted a surviving
+      // shownAtUrl['/'] and yanked the user off /elsewhere. Now: no navigation.
+      expect(router.navigateByUrl).not.toHaveBeenCalled();
+      expect(router.url).toBe('/elsewhere');
     });
   });
 
