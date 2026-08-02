@@ -223,12 +223,12 @@ label. (These label fields are **not** on `config.options` — don't put them th
 ```ts
 // app.config.ts — global labels + look
 provideOnboarding({
-  nextLabel: 'Dalej', prevLabel: 'Wstecz', doneLabel: 'Zakończ',
+  nextLabel: 'Next', prevLabel: 'Back', doneLabel: 'Done',
   overlayOpacity: 0.6, stagePadding: 10, closeOnBackdropClick: false,
 });
 
 // a step overriding just its own primary label
-{ id: 'finish', title: 'Gotowe', placement: 'center', nextLabel: 'Zaczynamy!' }
+{ id: 'finish', title: 'All set', placement: 'center', nextLabel: 'Get started' }
 ```
 
 ## Output
@@ -245,12 +245,12 @@ export const appOnboarding: OnboardingConfig = {
   id: 'main',
   options: { waitForEventTimeoutMs: 8000, onWaitTimeout: 'reveal' },
   steps: [
-    { id: 'welcome', targetSelector: '#welcome', title: 'Witaj', placement: 'bottom' },
-    { id: 'create', targetSelector: '#new-project', title: 'Utwórz projekt',
+    { id: 'welcome', targetSelector: '#welcome', title: 'Welcome', placement: 'bottom' },
+    { id: 'create', targetSelector: '#new-project', title: 'Create a project',
       waitForEvent: 'PROJECT_CREATED' },
     { id: 'stats', targetSelector: '#chart', navigateToRoute: '/dashboard',
-      title: 'Twój panel', placement: 'left' },
-    { id: 'done', title: 'Gotowe 🎉', placement: 'center', popoverClass: 'step-finish' },
+      title: 'Your dashboard', placement: 'left' },
+    { id: 'done', title: 'All set 🎉', placement: 'center', popoverClass: 'step-finish' },
   ],
 };
 ```
