@@ -30,7 +30,12 @@ export interface DriverJsRendererConfig {
   stagePadding?: number;
   /** Corner radius, in px, of the highlight cut-out. @defaultValue 5 */
   stageRadius?: number;
-  /** Enable arrow-key / escape keyboard control. @defaultValue true */
+  /**
+   * Allow closing the tour with the Escape key. (Arrow-key step navigation is
+   * not available: the renderer drives Driver.js in single-`highlight()` mode,
+   * where Driver.js's arrow handlers are inert.)
+   * @defaultValue true
+   */
   allowKeyboardControl?: boolean;
   /** Dismiss the tour when the backdrop is clicked. @defaultValue false */
   closeOnBackdropClick?: boolean;
@@ -143,9 +148,14 @@ export class DriverJsRenderer implements OnboardingRenderer {
         ...(side ? { side } : {}),
         ...(align ? { align } : {}),
         showButtons: this.buttonsFor(step, controls),
-        nextBtnText: escapeHtml(isLast ? this.config.doneLabel : this.config.nextLabel),
-        prevBtnText: escapeHtml(this.config.prevLabel),
-        doneBtnText: escapeHtml(this.config.doneLabel),
+        // Per-step labels win, falling back to the renderer-wide defaults.
+        nextBtnText: escapeHtml(
+          isLast
+            ? (step.doneLabel ?? this.config.doneLabel)
+            : (step.nextLabel ?? this.config.nextLabel),
+        ),
+        prevBtnText: escapeHtml(step.prevLabel ?? this.config.prevLabel),
+        doneBtnText: escapeHtml(step.doneLabel ?? this.config.doneLabel),
         popoverClass: this.popoverClassFor(step),
       },
     });

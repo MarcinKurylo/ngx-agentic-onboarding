@@ -284,7 +284,6 @@ export class OnboardingOrchestrator {
       });
     }
     this.teardown('idle');
-    this.shownAtUrl.clear();
     this._config.set(config);
     this.options = { ...DEFAULT_ONBOARDING_OPTIONS, ...(config.options ?? {}) };
   }
@@ -325,7 +324,7 @@ export class OnboardingOrchestrator {
     // Resolve the step we'll actually land on, skipping any `enabled:false`
     // steps in the direction of travel. Done first so a fully-skipped move
     // never fires the outgoing step's hooks or disturbs the current view.
-    const landing = await this.resolveEnabledIndex(index, direction, token);
+    let landing = await this.resolveEnabledIndex(index, direction, token);
     if (this.isStale(token)) return;
     if (landing === null) {
       if (direction === 1) {
@@ -347,12 +346,13 @@ export class OnboardingOrchestrator {
       return;
     }
 
-    const step = this.config!.steps[landing];
     const previous = this.currentStep();
     this._status.set('running');
 
+    let step: OnboardingStep | undefined;
     try {
-      // 1. after-hook of the step we're leaving.
+      // 1. after-hook of the outgoing step — runs once for the whole move,
+      //    even if the walk below skips over optional steps with no target.
       if (previous) {
         await this.runHook(previous.afterStep, this._index());
         if (this.isStale(token)) return;
@@ -361,79 +361,110 @@ export class OnboardingOrchestrator {
         });
       }
 
-      // 2. before-hook of the incoming step.
-      await this.runHook(step.beforeStep, landing);
-      if (this.isStale(token)) return;
+      // Walk toward a step whose target actually resolves. An `optional` step
+      // whose target never appears is silently skipped, continuing in the
+      // direction of travel.
+      for (;;) {
+        step = this.config!.steps[landing];
+        // A centered step is a modal that ignores any target element.
+        const centered = step.placement === 'center';
 
-      // 3. drive the router. Prefer the step's explicit route; otherwise, when
-      //    stepping back to a step shown earlier on a different route, restore
-      //    that route so its target actually exists in the DOM.
-      const desiredRoute =
-        step.navigateToRoute ?? this.shownAtUrl.get(landing);
-      if (
-        desiredRoute &&
-        this.router &&
-        this.router.url !== desiredRoute
-      ) {
-        // The current highlight's element is about to be torn away by the
-        // route change — drop the overlay first so it never lingers over
-        // empty space while the new route/target settles.
-        this.safeHide();
-        await this.navigate(desiredRoute);
+        // 2. before-hook of the incoming step.
+        await this.runHook(step.beforeStep, landing);
         if (this.isStale(token)) return;
-      }
 
-      // 4. wait for the target to materialise in the DOM.
-      const target = await this.resolveTarget(step, token);
-      if (this.isStale(token)) return;
-
-      if (!target && step.targetSelector && !step.optional) {
-        this.handleMissingTarget(step, landing);
-        if (this.options.abortOnMissingTarget) {
-          // Contract: a missing non-optional target aborts the whole tour. End
-          // it cleanly — overlay down, event stream closed — instead of leaving
-          // the engine "active" forever with no popover on screen. Not
-          // persisted, so the tour can still run once the target exists.
-          this.bus.emit(OnboardingLifecycleEvent.TourSkipped, {
-            id: this.config?.id,
-            atIndex: landing,
-          });
-          this.teardown('skipped');
-          return;
+        // 3. drive the router. Prefer the step's explicit route; otherwise,
+        //    only when stepping *backward* to a step first shown on another
+        //    route, restore that route so its target exists in the DOM.
+        const desiredRoute =
+          step.navigateToRoute ??
+          (direction === -1 ? this.shownAtUrl.get(landing) : undefined);
+        if (desiredRoute && this.router && this.router.url !== desiredRoute) {
+          // The current highlight's element is about to be torn away by the
+          // route change — drop the overlay first so it never lingers over
+          // empty space while the new route/target settles.
+          this.safeHide();
+          await this.navigate(desiredRoute);
+          if (this.isStale(token)) return;
         }
-      }
 
-      // 5. optional settle delay for entry animations.
-      if (step.delayMs && step.delayMs > 0) {
-        await this.sleep(step.delayMs);
+        // 4. resolve the target. A centered step ignores any target element,
+        //    so don't poll the selector at all.
+        const target = centered ? null : await this.resolveTarget(step, token);
         if (this.isStale(token)) return;
-      }
 
-      // 6. commit: this is the point of no return for this transition.
-      this._index.set(landing);
-      if (this.router) {
-        this.shownAtUrl.set(landing, this.router.url);
-      }
-      this.active = { step, target, index: landing, token };
+        if (!target && step.targetSelector && !centered) {
+          if (step.optional) {
+            // Silently skip: continue toward the next enabled step. The
+            // outgoing after-hook already ran, so it isn't fired again here.
+            this.bus.emit(OnboardingLifecycleEvent.StepSkipped, {
+              id: step.id,
+              index: landing,
+            });
+            const next = await this.resolveEnabledIndex(
+              landing + direction,
+              direction,
+              token,
+            );
+            if (this.isStale(token)) return;
+            if (next === null) {
+              // Ran off the end skipping optionals. Forward -> the tour is
+              // done; backward -> nowhere earlier and the outgoing step is
+              // already left, so end cleanly rather than deadlock.
+              if (direction === 1) this.complete();
+              else this.teardown('idle');
+              return;
+            }
+            landing = next;
+            continue;
+          }
+          this.handleMissingTarget(step, landing);
+          if (this.options.abortOnMissingTarget) {
+            // Contract: a missing non-optional target aborts the whole tour.
+            // End it cleanly — overlay down, event stream closed — instead of
+            // leaving the engine "active" forever with no popover on screen.
+            // Not persisted, so the tour can still run once the target exists.
+            this.bus.emit(OnboardingLifecycleEvent.TourSkipped, {
+              id: this.config?.id,
+              atIndex: landing,
+            });
+            this.teardown('skipped');
+            return;
+          }
+        }
 
-      // Arm the business-event wait BEFORE announcing the step. A host that
-      // reacts to StepShown by synchronously firing the gating event (a common
-      // analytics/automation pattern) would otherwise be missed — the bus is a
-      // plain Subject with no replay, so the subscription must already exist.
-      if (step.waitForEvent) {
-        this.waitForBusinessEvent(step, token);
-      } else {
-        this._status.set('running');
-      }
+        // 5. optional settle delay for entry animations.
+        if (step.delayMs && step.delayMs > 0) {
+          await this.sleep(step.delayMs);
+          if (this.isStale(token)) return;
+        }
 
-      this.render(step, target, landing);
-      this.bus.emit(OnboardingLifecycleEvent.StepShown, { id: step.id });
-      // Keep the highlight anchored even if the host re-renders the target away.
-      this.watchTarget(step, target, token);
+        // 6. commit: this is the point of no return for this transition.
+        this._index.set(landing);
+        if (this.router) {
+          this.shownAtUrl.set(landing, this.router.url);
+        }
+        this.active = { step, target, index: landing, token };
+
+        // Arm the business-event wait BEFORE announcing the step. A host that
+        // reacts to StepShown by synchronously firing the gating event would
+        // otherwise be missed — the bus is a plain Subject with no replay.
+        if (step.waitForEvent) {
+          this.waitForBusinessEvent(step, token);
+        } else {
+          this._status.set('running');
+        }
+
+        this.render(step, target, landing);
+        this.bus.emit(OnboardingLifecycleEvent.StepShown, { id: step.id });
+        // Keep the highlight anchored even if the host re-renders it away.
+        this.watchTarget(step, target, token);
+        return;
+      }
     } catch (error) {
       if (this.isStale(token)) return;
       this.bus.emit(OnboardingLifecycleEvent.StepError, {
-        id: step.id,
+        id: step?.id,
         error: error instanceof Error ? error.message : String(error),
       });
       console.error('[ngx-agentic-onboarding] step transition failed:', error);
@@ -905,6 +936,9 @@ export class OnboardingOrchestrator {
     this.active = null;
     this._index.set(-1);
     this._status.set(status);
+    // Forget per-step routes so a later start() (which may reuse the config)
+    // can't yank the user to a stale route from the previous run.
+    this.shownAtUrl.clear();
     this.safeHide();
   }
 
