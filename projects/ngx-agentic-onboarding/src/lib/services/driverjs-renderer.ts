@@ -55,6 +55,21 @@ export const DRIVERJS_RENDERER_CONFIG =
  */
 export const ONBOARDING_POPOVER_CLASS = 'ngx-onboarding';
 
+/**
+ * Escapes HTML metacharacters so a string is rendered as literal text by
+ * Driver.js, which assigns popover title/description/button text via
+ * `innerHTML`. This is the default path for step text; raw HTML is only emitted
+ * when a step explicitly sets `allowHtml`.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const DEFAULTS: Required<DriverJsRendererConfig> = {
   animate: true,
   overlayColor: 'rgb(0, 0, 0)',
@@ -109,20 +124,37 @@ export class DriverJsRenderer implements OnboardingRenderer {
     const isLast = controls.index >= controls.total - 1;
     const { side, align } = mapPlacement(step);
 
+    // Driver.js sets popover title/description/button text via `innerHTML`, so
+    // escape by default and only pass raw HTML when the step opts in. Button
+    // labels are always plain text and always escaped.
+    const raw = step.allowHtml === true;
+
     instance.highlight({
       element: target ?? undefined,
       popover: {
-        title: step.title,
-        description: step.content,
+        title: this.text(step.title, raw),
+        description: this.text(step.content, raw),
         ...(side ? { side } : {}),
         ...(align ? { align } : {}),
         showButtons: this.buttonsFor(step, controls),
-        nextBtnText: isLast ? this.config.doneLabel : this.config.nextLabel,
-        prevBtnText: this.config.prevLabel,
-        doneBtnText: this.config.doneLabel,
+        nextBtnText: escapeHtml(isLast ? this.config.doneLabel : this.config.nextLabel),
+        prevBtnText: escapeHtml(this.config.prevLabel),
+        doneBtnText: escapeHtml(this.config.doneLabel),
         popoverClass: this.popoverClassFor(step),
       },
     });
+  }
+
+  /**
+   * Prepares step title/content for Driver.js's `innerHTML` sink: escaped by
+   * default, passed through verbatim only when the step opted into raw HTML.
+   * `undefined` in, `undefined` out — the popover field stays unset.
+   */
+  private text(value: string | undefined, raw: boolean): string | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    return raw ? value : escapeHtml(value);
   }
 
   /**

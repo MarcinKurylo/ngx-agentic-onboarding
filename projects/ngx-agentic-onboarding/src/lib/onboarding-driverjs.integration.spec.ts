@@ -122,6 +122,53 @@ describe('Orchestrator + DriverJsRenderer (integration)', () => {
     expect(pop?.classList.contains('my-step')).toBeTrue();
   });
 
+  it('escapes step title/content by default, neutralising injected HTML', async () => {
+    const w = window as unknown as { __xssFired?: boolean };
+    w.__xssFired = false;
+    addTarget('welcome');
+    orchestrator.start(
+      config([
+        {
+          id: 's0',
+          targetSelector: '#welcome',
+          title: 'Hi <img src=x onerror="window.__xssFired=true">',
+          content: 'Body <b id="injected-marker">x</b>',
+        },
+      ]),
+    );
+    await flush();
+
+    // The payload is rendered as literal text: no elements are parsed from it
+    // and the attacker's onerror never runs.
+    expect(document.querySelector('#injected-marker')).toBeNull();
+    expect(w.__xssFired).toBeFalse();
+    expect(popoverTitle()).toBe(
+      'Hi <img src=x onerror="window.__xssFired=true">',
+    );
+    const desc = document.querySelector('.driver-popover-description');
+    expect(desc?.textContent).toContain('<b id="injected-marker">x</b>');
+
+    delete w.__xssFired;
+  });
+
+  it('renders raw HTML only when the step opts in with allowHtml', async () => {
+    addTarget('welcome');
+    orchestrator.start(
+      config([
+        {
+          id: 's0',
+          targetSelector: '#welcome',
+          content: 'Body <b id="opt-in-marker">bold</b>',
+          allowHtml: true,
+        },
+      ]),
+    );
+    await flush();
+
+    // With the explicit opt-in the markup becomes a live element again.
+    expect(document.querySelector('#opt-in-marker')).not.toBeNull();
+  });
+
   it('hides the primary button while a step waits for a business event', async () => {
     addTarget('create');
     orchestrator.start(

@@ -55,11 +55,26 @@ export interface OnboardingStep {
    */
   readonly targetSelector?: string;
 
-  /** Popover heading. */
+  /**
+   * Popover heading. Treated as plain text and HTML-escaped before display
+   * (see {@link allowHtml} to opt into raw HTML).
+   */
   readonly title?: string;
 
-  /** Popover body. Plain text by default; renderers may opt into HTML. */
+  /**
+   * Popover body. Treated as plain text and HTML-escaped before display, so
+   * interpolating user- or server-supplied data is safe by default
+   * (see {@link allowHtml} to opt into raw HTML).
+   */
   readonly content?: string;
+
+  /**
+   * Opt this step's {@link title}/{@link content} out of escaping and render
+   * them as raw HTML. Only enable it for trusted, developer-authored strings —
+   * passing attacker-influenced data with `allowHtml: true` is an XSS sink.
+   * @defaultValue false
+   */
+  readonly allowHtml?: boolean;
 
   /** Where to place the popover relative to the target. Defaults to `auto`. */
   readonly placement?: OnboardingStepPlacement;
