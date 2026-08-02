@@ -115,7 +115,7 @@ interface OnboardingConfig {
   steps: readonly OnboardingStep[];
   startImmediately?: boolean;   // auto-start (guarded by persistence). default false
   persist?: boolean;            // remember completion in localStorage. default true
-  options?: OnboardingOptions;  // TIMING/BEHAVIOUR only (labels live elsewhere — see below)
+  options?: OnboardingOptions;  // TIMING/BEHAVIOUR only (button labels: per-step below, or global in provideOnboarding)
 }
 
 interface OnboardingStep {
@@ -149,18 +149,20 @@ interface OnboardingStep {
   afterStep?:  (ctx) => void | Promise<void>;
 
   popoverClass?: string;            // extra CSS class for theming this step
+  nextLabel?: string;               // per-step button label overrides; each falls
+  prevLabel?: string;               //   back to the global label from provideOnboarding()
+  doneLabel?: string;               //   (doneLabel is shown when the step is last)
 }
 
 interface OnboardingOptions {       // tour-wide timing/behaviour + defaults
   waitForSelectorTimeoutMs?: number;// default 5000
   selectorPollIntervalMs?: number;  // default 100
-  abortOnMissingTarget?: boolean;   // default false (error + stop, don't crash)
+  abortOnMissingTarget?: boolean;   // default false (non-optional miss: error + render;
+                                    //   true: end the tour cleanly)
   waitForEventTimeoutMs?: number;   // default 0 (forever)
   onWaitTimeout?: 'reveal'|'advance'|'skip';  // default 'reveal'
-  // ⚠️ Typed here but the Driver renderer IGNORES them — dead config in `options`.
-  // Set labels + closeOnBackdropClick in provideOnboarding() instead (see below).
-  nextLabel?: string; prevLabel?: string; skipLabel?: string; doneLabel?: string;
-  closeOnBackdropClick?: boolean;
+  // Button labels + closeOnBackdropClick live on the renderer config
+  // (provideOnboarding), NOT here — see below.
 }
 ```
 
@@ -184,20 +186,22 @@ interface OnboardingOptions {       // tour-wide timing/behaviour + defaults
   restores the route when stepping **back** to a step shown on an earlier route.
   You don't configure these — just don't fight them with manual timers.
 
-### Labels & look — set in provideOnboarding(), not the config
+### Labels & look — global in provideOnboarding(), per-step on the step
 
-Button labels and overlay styling belong in the renderer config passed to
-`provideOnboarding()`. The trap: `nextLabel`/`prevLabel`/`skipLabel`/`doneLabel`
-and `closeOnBackdropClick` are **also typed on `OnboardingOptions`**, so putting
-them in `config.options` compiles cleanly and then **silently does nothing** — the
-Driver renderer never reads them there. Always set them in `provideOnboarding()`.
+Global button labels and overlay styling belong in the renderer config passed to
+`provideOnboarding()`. A single step can override its own button text with
+`nextLabel`/`prevLabel`/`doneLabel`; anything it omits falls back to the global
+label. (These label fields are **not** on `config.options` — don't put them there.)
 
 ```ts
-// app.config.ts
+// app.config.ts — global labels + look
 provideOnboarding({
   nextLabel: 'Dalej', prevLabel: 'Wstecz', doneLabel: 'Zakończ',
   overlayOpacity: 0.6, stagePadding: 10, closeOnBackdropClick: false,
 });
+
+// a step overriding just its own primary label
+{ id: 'finish', title: 'Gotowe', placement: 'center', nextLabel: 'Zaczynamy!' }
 ```
 
 ## Output
