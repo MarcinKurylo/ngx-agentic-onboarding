@@ -1,4 +1,4 @@
-import { DOCUMENT } from '@angular/common';
+import { DOCUMENT, isPlatformServer } from '@angular/common';
 import {
   afterNextRender,
   computed,
@@ -7,6 +7,7 @@ import {
   Injectable,
   Injector,
   NgZone,
+  PLATFORM_ID,
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
@@ -55,6 +56,7 @@ export class OnboardingOrchestrator {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly zone = inject(NgZone, { optional: true });
+  private readonly isServer = isPlatformServer(inject(PLATFORM_ID));
 
   /**
    * The loaded config, held in a signal so that every `computed()` derived
@@ -85,6 +87,13 @@ export class OnboardingOrchestrator {
 
   /** Timer that fires when a business-event wait exceeds its timeout. */
   private waitTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Cancels the in-flight DOM poll / settle delay, if any. Lets a teardown or a
+   * superseded transition stop it immediately instead of hammering the DOM
+   * until the full selector timeout.
+   */
+  private pendingCancel: (() => void) | null = null;
 
   /** Observes the DOM to detect the visible step's target being removed. */
   private targetObserver: MutationObserver | null = null;
@@ -264,6 +273,16 @@ export class OnboardingOrchestrator {
    * Loads and normalises a config without starting the tour.
    */
   private load(config: OnboardingConfig): void {
+    // Loading a new config over a running tour tears it down. Announce that as
+    // a skip so the event stream stays balanced (a TourStarted always has a
+    // matching end) — otherwise analytics count the replaced tour as never
+    // ending. Not persisted: it was interrupted, not seen, so it can run again.
+    if (this.isActive()) {
+      this.bus.emit(OnboardingLifecycleEvent.TourSkipped, {
+        id: this.config?.id,
+        atIndex: this._index(),
+      });
+    }
     this.teardown('idle');
     this.shownAtUrl.clear();
     this._config.set(config);
@@ -300,6 +319,7 @@ export class OnboardingOrchestrator {
     token: number,
   ): Promise<void> {
     this.cancelPendingWait();
+    this.cancelPending();
     this.stopTargetWatch();
 
     // Resolve the step we'll actually land on, skipping any `enabled:false`
@@ -364,7 +384,7 @@ export class OnboardingOrchestrator {
       }
 
       // 4. wait for the target to materialise in the DOM.
-      const target = await this.resolveTarget(step);
+      const target = await this.resolveTarget(step, token);
       if (this.isStale(token)) return;
 
       if (!target && step.targetSelector && !step.optional) {
@@ -395,17 +415,21 @@ export class OnboardingOrchestrator {
         this.shownAtUrl.set(landing, this.router.url);
       }
       this.active = { step, target, index: landing, token };
-      this.render(step, target, landing);
-      this.bus.emit(OnboardingLifecycleEvent.StepShown, { id: step.id });
-      // Keep the highlight anchored even if the host re-renders the target away.
-      this.watchTarget(step, target, token);
 
-      // 7. if the step is event-gated, pause and wait for the business event.
+      // Arm the business-event wait BEFORE announcing the step. A host that
+      // reacts to StepShown by synchronously firing the gating event (a common
+      // analytics/automation pattern) would otherwise be missed — the bus is a
+      // plain Subject with no replay, so the subscription must already exist.
       if (step.waitForEvent) {
         this.waitForBusinessEvent(step, token);
       } else {
         this._status.set('running');
       }
+
+      this.render(step, target, landing);
+      this.bus.emit(OnboardingLifecycleEvent.StepShown, { id: step.id });
+      // Keep the highlight anchored even if the host re-renders the target away.
+      this.watchTarget(step, target, token);
     } catch (error) {
       if (this.isStale(token)) return;
       this.bus.emit(OnboardingLifecycleEvent.StepError, {
@@ -515,20 +539,31 @@ export class OnboardingOrchestrator {
       if (this.isStale(token)) return;
       this.next();
     };
+    // On the server there is no render loop for afterNextRender to hook — it
+    // returns a no-op and never fires, so the step would hang forever. There is
+    // no DOM to settle either, so just advance on a macrotask.
+    if (this.isServer) {
+      setTimeout(advance, 0);
+      return;
+    }
     const schedule = () => {
-      try {
+      // If the event was emitted outside Angular's zone (a socket push, a bare
+      // async callback), re-enter so a change detection — and therefore a
+      // render — is actually scheduled; otherwise afterNextRender never fires.
+      if (this.zone && !NgZone.isInAngularZone()) {
+        this.zone.run(() => afterNextRender(advance, { injector: this.injector }));
+      } else {
         afterNextRender(advance, { injector: this.injector });
-      } catch {
-        // No render lifecycle to hook (bare service test / SSR) — fall back to
-        // a macrotask so the tour still advances rather than stalling.
-        setTimeout(advance, 0);
       }
     };
-    // If the event was emitted outside Angular's zone (a socket push, a bare
-    // async callback), re-enter so a change detection — and therefore a
-    // render — is actually scheduled; otherwise afterNextRender never fires.
-    if (this.zone && !NgZone.isInAngularZone()) {
-      this.zone.run(schedule);
+    // When the event fires *inside* the step's own commit (a host reacting to
+    // StepShown synchronously), an afterNextRender registered right now won't
+    // fire — it's mid-pipeline, before the render cycle it needs. Bounce the
+    // scheduling to a macrotask so it registers once this transition has
+    // settled, in a clean render cycle. The macrotask still runs before the
+    // host's coalesced change detection, so the render wait is preserved.
+    if (this.transitionInFlight) {
+      setTimeout(schedule, 0);
     } else {
       schedule();
     }
@@ -590,7 +625,10 @@ export class OnboardingOrchestrator {
    * configured timeout elapses. Returns `null` for target-less (centered)
    * steps, when running without a DOM (SSR), or on timeout.
    */
-  private resolveTarget(step: OnboardingStep): Promise<Element | null> {
+  private resolveTarget(
+    step: OnboardingStep,
+    token: number,
+  ): Promise<Element | null> {
     if (!step.targetSelector) {
       return Promise.resolve(null);
     }
@@ -612,14 +650,25 @@ export class OnboardingOrchestrator {
         return;
       }
       const startedAt = Date.now();
+      const finish = (result: Element | null): void => {
+        clearInterval(handle);
+        if (this.pendingCancel === cancel) this.pendingCancel = null;
+        resolve(result);
+      };
+      const cancel = (): void => finish(null);
+      this.pendingCancel = cancel;
       const handle = setInterval(() => {
+        // A teardown or a newer transition bumped the token — stop polling the
+        // DOM at once instead of running out the whole selector timeout.
+        if (this.isStale(token)) {
+          finish(null);
+          return;
+        }
         const found = doc.querySelector(selector);
         if (found) {
-          clearInterval(handle);
-          resolve(found);
+          finish(found);
         } else if (Date.now() - startedAt >= timeout) {
-          clearInterval(handle);
-          resolve(null);
+          finish(null);
         }
       }, interval);
     });
@@ -641,7 +690,25 @@ export class OnboardingOrchestrator {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        if (this.pendingCancel === cancel) this.pendingCancel = null;
+        resolve();
+      }, ms);
+      const cancel = (): void => {
+        clearTimeout(timer);
+        if (this.pendingCancel === cancel) this.pendingCancel = null;
+        resolve();
+      };
+      this.pendingCancel = cancel;
+    });
+  }
+
+  /** Cancels an in-flight DOM poll or settle delay so it stops immediately. */
+  private cancelPending(): void {
+    const cancel = this.pendingCancel;
+    this.pendingCancel = null;
+    cancel?.();
   }
 
   // --- Rendering & teardown ---------------------------------------------
@@ -782,7 +849,7 @@ export class OnboardingOrchestrator {
     // Otherwise drop the overlay so it never highlights the empty space the
     // element left behind, then wait (up to the selector timeout) for it back.
     this.safeHide();
-    const recovered = await this.resolveTarget(step);
+    const recovered = await this.resolveTarget(step, token);
     if (this.isStale(token)) return;
 
     if (recovered) {
@@ -833,6 +900,7 @@ export class OnboardingOrchestrator {
     // Invalidate any in-flight transition.
     this.transitionToken++;
     this.cancelPendingWait();
+    this.cancelPending();
     this.stopTargetWatch();
     this.active = null;
     this._index.set(-1);

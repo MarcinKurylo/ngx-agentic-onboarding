@@ -1,6 +1,6 @@
 /// <reference types="jasmine" />
 import { DOCUMENT } from '@angular/common';
-import { ApplicationRef } from '@angular/core';
+import { ApplicationRef, PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 
@@ -814,6 +814,76 @@ describe('OnboardingOrchestrator', () => {
 
       expect(orchestrator.currentIndex()).toBe(1); // advanced once, not twice
       expect(afterS0).toBe(1); // afterStep ran exactly once
+    });
+  });
+
+  describe('resource & event-stream hygiene', () => {
+    it('stops polling the DOM once the tour is torn down (regression: interval leak)', async () => {
+      const spy = spyOn(document, 'querySelector').and.callThrough();
+      orchestrator.start(
+        config([{ id: 's0', targetSelector: '#never' }], {
+          waitForSelectorTimeoutMs: 5000,
+          selectorPollIntervalMs: 10,
+        }),
+      );
+      await wait(35); // let a few polls run
+      expect(spy.calls.count()).toBeGreaterThan(0);
+
+      orchestrator.skip();
+      const afterSkip = spy.calls.count();
+      await wait(60); // several poll intervals later
+
+      // The poller was cancelled on teardown — no DOM hits after the skip,
+      // instead of hammering querySelector until the 5s selector timeout.
+      expect(spy.calls.count()).toBe(afterSkip);
+    });
+
+    it('emits TourSkipped when a new tour replaces a running one (regression: silent teardown)', async () => {
+      const seen = events();
+      orchestrator.start(config([{ id: 'a0' }, { id: 'a1' }]));
+      await flush();
+      expect(orchestrator.isActive()).toBeTrue();
+
+      // Start a different tour while the first is still running.
+      orchestrator.start(config([{ id: 'b0' }]));
+      await flush();
+
+      // The replaced tour's end is announced, not swallowed, so a funnel sees a
+      // matching end for its TourStarted.
+      expect(seen).toContain(OnboardingLifecycleEvent.TourSkipped);
+      expect(
+        seen.filter((t) => t === OnboardingLifecycleEvent.TourStarted).length,
+      ).toBe(2);
+    });
+  });
+
+  describe('on the server (SSR platform)', () => {
+    beforeEach(() => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          OnboardingOrchestrator,
+          OnboardingEventBus,
+          { provide: ONBOARDING_RENDERER, useValue: renderer },
+          { provide: ONBOARDING_STORAGE, useValue: storage },
+          { provide: Router, useValue: router },
+          { provide: PLATFORM_ID, useValue: 'server' },
+        ],
+      });
+      orchestrator = TestBed.inject(OnboardingOrchestrator);
+      bus = TestBed.inject(OnboardingEventBus);
+    });
+
+    it('advances an event-gated step on a macrotask (afterNextRender never fires on the server)', async () => {
+      orchestrator.start(
+        config([{ id: 's0', waitForEvent: 'X' }, { id: 's1' }]),
+      );
+      await flush();
+      expect(orchestrator.status()).toBe('waiting');
+
+      bus.emit('X');
+      await wait(10); // server path defers via setTimeout(advance, 0)
+      expect(orchestrator.currentIndex()).toBe(1);
     });
   });
 
