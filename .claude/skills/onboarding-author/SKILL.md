@@ -79,14 +79,30 @@ over guessing.
      resolves (not before), and use the *exact* same name as the step's
      `waitForEvent`. This is a mechanical edit; just make it. Only ask the user when
      *which* action should gate the step is genuinely unclear.
+   - **Emit *before* an action tears the highlighted element down.** The rule above
+     is "emit after the action resolves" — but when that same action also destroys
+     the target (a modal that saves **and closes**, a deleted row, a navigation
+     away), emit **before** the teardown call (`ref.close()`, the route change),
+     still inside the success callback. The orchestrator needs the element alive to
+     schedule its advance from it; emit after it's gone and you race the engine's
+     "target-lost" recovery. Leave a one-line comment so the ordering isn't "tidied"
+     later.
    - Always pair a `waitForEvent` with a safety timeout (see resilience below) so
      a user is never stranded on an event that never fires.
 
-5. **Handle async DOM (loaders).** If the target appears after a spinner /
+5. **Handle async DOM (loaders, overlays).** If the target appears after a spinner /
    `@if (loading())` / an HTTP call, the engine already polls for it
-   (`waitForSelectorTimeoutMs`, default 5000 ms). Only add `delayMs` when an
-   **entry animation** needs to settle after the element exists. Bump
-   `waitForSelectorTimeoutMs` on a step if a request is genuinely slow.
+   (`waitForSelectorTimeoutMs`, default 5000 ms). Add `delayMs` (typically 100–200 ms)
+   for the narrower case where the element **exists but isn't settled**:
+   - an **entry animation** that needs to finish after the element mounts;
+   - a **freshly-opened overlay/portal** (CDK `Dialog`, modal, dropdown) whose content
+     the selector finds on the first frame, but which hasn't attached/positioned before
+     Driver.js measures the cutout — without the delay the highlight lands where the
+     dialog *will be*, not where it is. `delayMs` runs *after* the target resolves and
+     *before* the cutout is measured, which is exactly this gap. Treat the value as a
+     tunable guess and say so to the user.
+
+   Bump `waitForSelectorTimeoutMs` on a step if a request is genuinely slow.
 
 6. **Conditional steps (`enabled`).** If a step only applies to some users (plan,
    role, feature flag), give it `enabled: (ctx) => <predicate>` (sync or async).
