@@ -1,7 +1,11 @@
 /// <reference types="jasmine" />
 import { TestBed } from '@angular/core/testing';
 
-import { OnboardingConfig, OnboardingStep } from './models';
+import {
+  OnboardingConfig,
+  OnboardingLifecycleEvent,
+  OnboardingStep,
+} from './models';
 import { provideOnboarding } from './provide-onboarding';
 import { OnboardingEventBus } from './services/onboarding-event-bus.service';
 import { OnboardingOrchestrator } from './services/onboarding-orchestrator.service';
@@ -228,5 +232,33 @@ describe('Orchestrator + DriverJsRenderer (integration)', () => {
     // The mandatory step swallows the Escape: overlay stays, tour stays active.
     expect(document.querySelector('.driver-popover')).not.toBeNull();
     expect(orchestrator.isActive()).toBeTrue();
+  });
+
+  it('catches a business event fired synchronously in the StepShown handler (regression: lost)', async () => {
+    addTarget('welcome');
+    // The host reacts to StepShown by immediately completing the gated action,
+    // firing the event inside the same emit — before the subscription used to
+    // exist. With the wait armed first, it must still be caught.
+    const sub = bus.events$.subscribe((e) => {
+      if (
+        e.type === OnboardingLifecycleEvent.StepShown &&
+        (e.payload as { id?: string })?.id === 's0'
+      ) {
+        bus.emit('GO');
+      }
+    });
+
+    orchestrator.start(
+      config([
+        { id: 's0', targetSelector: '#welcome', waitForEvent: 'GO' },
+        { id: 's1', title: 'Drugi' },
+      ]),
+    );
+    await flush();
+    await flush();
+
+    // The tour advanced instead of hanging on an event it never heard.
+    expect(orchestrator.currentIndex()).toBe(1);
+    sub.unsubscribe();
   });
 });
