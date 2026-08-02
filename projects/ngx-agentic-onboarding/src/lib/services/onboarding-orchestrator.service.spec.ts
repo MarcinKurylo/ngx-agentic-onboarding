@@ -764,6 +764,59 @@ describe('OnboardingOrchestrator', () => {
     });
   });
 
+  describe('user-visible transition bugs', () => {
+    it('does not persist a run where every step was gated off (regression: locked out)', async () => {
+      let allowed = false;
+      const cfg = config([
+        { id: 's0', enabled: () => allowed },
+        { id: 's1', enabled: () => allowed },
+      ]);
+
+      orchestrator.start(cfg);
+      await flush();
+
+      // Nothing was shown -> nothing persisted, engine settles to idle.
+      expect(orchestrator.currentIndex()).toBe(-1);
+      expect(orchestrator.status()).toBe('idle');
+      expect(storage.isCompleted(KEY)).toBeFalse();
+
+      // Predicates flip on later -> the tour can still run.
+      allowed = true;
+      expect(orchestrator.startIfNotCompleted(cfg)).toBeTrue();
+      await flush();
+      expect(orchestrator.currentIndex()).toBe(0);
+    });
+
+    it('ignores a re-entrant next() while a transition is in flight (regression: double hooks)', async () => {
+      let afterS0 = 0;
+      orchestrator.start(
+        config([
+          {
+            id: 's0',
+            afterStep: async () => {
+              afterS0++;
+              await wait(20);
+            },
+          },
+          { id: 's1' },
+          { id: 's2' },
+        ]),
+      );
+      await flush();
+      expect(orchestrator.currentIndex()).toBe(0);
+
+      // Two rapid clicks: the second must be ignored while the first transition
+      // is still parked on s0's async afterStep.
+      orchestrator.next();
+      orchestrator.next();
+      await wait(40);
+      await flush();
+
+      expect(orchestrator.currentIndex()).toBe(1); // advanced once, not twice
+      expect(afterS0).toBe(1); // afterStep ran exactly once
+    });
+  });
+
   describe('without a DOM (SSR)', () => {
     beforeEach(() => {
       TestBed.resetTestingModule();
