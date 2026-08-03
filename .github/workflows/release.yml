@@ -1,0 +1,64 @@
+name: Release
+
+# Tag-based release. Push a tag like `v0.1.0` and this runs the full CI suite
+# AND the Angular 16–22 compatibility matrix first, then publishes the library
+# to npm.
+#
+# Publishing is intentionally DISABLED for now — the `publish` job only builds
+# the package and prints what it *would* do. This whole file is a ready-to-arm
+# scaffold: flip the commented lines in `publish` when we decide to release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  # Gate 1 — the same lint / unit+integration / e2e suite that runs on every PR.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  # Gate 2 — install + build a consumer app on every supported Angular (16–22).
+  compat:
+    uses: ./.github/workflows/compat-matrix.yml
+
+  # Gate 3 — publish (currently a no-op trace; see the disabled block).
+  publish:
+    name: Publish to npm (disabled)
+    needs: [ci, compat]
+    runs-on: ubuntu-latest
+    # Provenance publishing additionally needs:
+    #   permissions:
+    #     contents: read
+    #     id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          # registry-url: 'https://registry.npmjs.org'   # uncomment to publish
+
+      - run: npm ci
+
+      - name: Build library
+        run: npx ng build ngx-agentic-onboarding
+
+      - name: Publish (DISABLED — trace only)
+        run: |
+          echo "Tag $GITHUB_REF_NAME passed CI + the Angular 16-22 matrix."
+          echo "npm publish is intentionally disabled until we choose to release."
+          echo "dist/ngx-agentic-onboarding is built and ready to publish."
+          # === To arm a real release, do ALL of the following: ===
+          # 1. Create an npm automation token; add it as the NPM_TOKEN repo secret.
+          # 2. Uncomment `registry-url` on setup-node above.
+          # 3. Uncomment `id-token: write` in this job's permissions (for --provenance).
+          # 4. Bump projects/ngx-agentic-onboarding/package.json `version` to match the tag.
+          # 5. Uncomment the two lines below:
+          #
+          # cd dist/ngx-agentic-onboarding
+          # npm publish --access public --provenance
+        # env:
+        #   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

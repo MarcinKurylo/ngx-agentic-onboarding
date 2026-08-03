@@ -6,6 +6,7 @@ name: Angular compatibility
 # change, before a release, or when a new Angular major ships.
 on:
   workflow_dispatch:
+  workflow_call: # reused by the tag-based Release workflow
 
 permissions:
   contents: read
