@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 Lightweight, **config-driven** and **event-driven** onboarding / product-tour
-engine for Angular 16+. Describe an entire tour as a single typed object; an
+engine for Angular 16.2+. Describe an entire tour as a single typed object; an
 async engine coordinates the transitions — waiting for business events, driving
 the router, and waiting for elements to appear after loaders — and paints the
 overlay with a slimmed [Driver.js](https://driverjs.com). **No tour code in your
