@@ -1,0 +1,120 @@
+name: Angular compatibility
+
+# On-demand only (plus a temporary push trigger while iterating on this branch).
+# This is heavy — a fresh `ng new` per Angular version — so it deliberately does
+# NOT run on every PR. Trigger it manually from the Actions tab when the peer
+# range or engine internals change.
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/compat-matrix] # TEMP: remove before merging to main
+
+permissions:
+  contents: read
+
+jobs:
+  build-lib:
+    name: Build library
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build library
+        run: npx ng build ngx-agentic-onboarding
+
+      - name: Pack tarball
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/pkg"
+          cd dist/ngx-agentic-onboarding
+          npm pack --pack-destination "$GITHUB_WORKSPACE/pkg"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lib-pkg
+          path: pkg/*.tgz
+
+  consumer:
+    name: Angular ${{ matrix.ng }}
+    needs: build-lib
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { ng: '16', node: '18' }
+          - { ng: '17', node: '18' }
+          - { ng: '18', node: '20' }
+          - { ng: '19', node: '20' }
+          - { ng: '20', node: '20' }
+          - { ng: '21', node: '22' }
+          - { ng: '22', node: '22' }
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: lib-pkg
+          path: pkg
+
+      - name: Scaffold a fresh Angular ${{ matrix.ng }} app
+        env:
+          NG_CLI_ANALYTICS: 'false'
+          CI: 'true'
+        run: |
+          npx --yes @angular/cli@${{ matrix.ng }} new consumer \
+            --style=css --skip-git --skip-tests --defaults
+
+      - name: Wire the library through main.ts (version-agnostic)
+        run: |
+          cat > consumer/src/main.ts <<'TS'
+          import { bootstrapApplication } from '@angular/platform-browser';
+          import { Component, inject } from '@angular/core';
+          import {
+            provideOnboarding,
+            OnboardingOrchestrator,
+            OnboardingEventBus,
+            type OnboardingConfig,
+          } from 'ngx-agentic-onboarding';
+
+          const tour: OnboardingConfig = {
+            version: '1.0.0',
+            id: 'smoke',
+            steps: [{ id: 's', targetSelector: '#x', title: 'x' }],
+          };
+
+          @Component({
+            selector: 'app-root',
+            standalone: true,
+            template: '<div id="x">ok</div>',
+          })
+          export class AppRoot {
+            private readonly ob = inject(OnboardingOrchestrator);
+            private readonly bus = inject(OnboardingEventBus);
+            constructor() {
+              void this.ob;
+              void this.bus;
+              void tour;
+            }
+          }
+
+          bootstrapApplication(AppRoot, {
+            providers: [provideOnboarding({ nextLabel: 'Next' })],
+          }).catch((e) => console.error(e));
+          TS
+
+      - name: Install the built library
+        working-directory: consumer
+        run: npm i ../pkg/*.tgz driver.js
+
+      - name: Build the consumer against Angular ${{ matrix.ng }}
+        working-directory: consumer
+        run: npx ng build
