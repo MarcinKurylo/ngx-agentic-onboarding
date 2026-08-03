@@ -1,7 +1,7 @@
 # ngx-agentic-onboarding
 
 Lightweight, **config-driven** and **event-driven** onboarding / product-tour
-engine for Angular 16+. Define the whole tour in one typed object; the engine
+engine for Angular 16.2+. Define the whole tour in one typed object; the engine
 coordinates asynchronous transitions — waiting for business events, driving the
 router, and waiting for elements to appear after loaders — and paints the
 overlay with a slimmed [Driver.js](https://driverjs.com). No tour code in your
@@ -15,7 +15,7 @@ npm i ngx-agentic-onboarding driver.js
 
 ## Compatibility
 
-Supports **Angular 16 through 22** (peer range `>=16.0.0 <23.0.0`). `@angular/router`
+Supports **Angular 16.2 through 22** (peer range `>=16.2.0 <23.0.0`). `@angular/router`
 is an optional peer — the engine works without it, and `navigateToRoute` steps are
 simply ignored when no `Router` is present.
 
@@ -24,18 +24,19 @@ Why the wide range works:
 - The package ships **only injectable services** (no components/directives), so its
   compiled Angular Package Format declares `minVersion: 12.0.0` — any Angular linker
   from v16 up can consume it, regardless of the Angular version it was built with.
-- The Angular APIs it uses (`inject`, `afterNextRender`, `signal`/`computed`,
-  `DestroyRef`) all exist from **v16** onward.
+- The newest Angular APIs it uses — `afterNextRender` and `signal().asReadonly()` —
+  landed in **v16.2**, which is why the floor is 16.2 rather than 16.0. Everything
+  else (`inject`, `signal`/`computed`, `DestroyRef`) is available from v16.
 
 Caveats to know:
 
-- On **Angular 16**, `signal`/`computed` are Angular's *developer-preview* APIs. They
+- On **Angular 16.2**, `signal`/`computed` are Angular's *developer-preview* APIs. They
   are functionally present and the engine uses them internally only, but 16.x users
   inherit that preview status. From **17+** signals are stable.
-- CI currently builds and runs the unit/integration + e2e suites on the workspace's
-  Angular (19.x). Support for 16–18 and 20–22 is guaranteed by the peer range and the
-  `minVersion`/API basis above; a per-version consumer build matrix is tracked as a
-  follow-up to turn "declared" into "CI-verified" across the whole range.
+- CI builds and runs the unit/integration + e2e suites on the workspace's Angular
+  (21.x). A separate, on-demand consumer-build matrix compiles a fresh app against
+  every supported major (16.2–22) to keep the range CI-verified rather than merely
+  declared.
 
 ## Setup
 
