@@ -1,13 +1,11 @@
 name: Angular compatibility
 
-# On-demand only (plus a temporary push trigger while iterating on this branch).
-# This is heavy — a fresh `ng new` per Angular version — so it deliberately does
-# NOT run on every PR. Trigger it manually from the Actions tab when the peer
-# range or engine internals change.
+# On-demand only. This is heavy — a fresh `ng new` per Angular version — so it
+# deliberately does NOT run on every PR. Trigger it manually from the Actions tab
+# (or `gh workflow run compat-matrix.yml`) when the peer range or engine internals
+# change, before a release, or when a new Angular major ships.
 on:
   workflow_dispatch:
-  push:
-    branches: [feat/compat-matrix] # TEMP: remove before merging to main
 
 permissions:
   contents: read
