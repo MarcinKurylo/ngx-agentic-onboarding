@@ -1,4 +1,4 @@
-import { isPlatformServer } from '@angular/common';
+import { DOCUMENT, isPlatformServer } from '@angular/common';
 import {
   afterNextRender,
   computed,
@@ -9,7 +9,6 @@ import {
   NgZone,
   PLATFORM_ID,
   signal,
-  DOCUMENT
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
