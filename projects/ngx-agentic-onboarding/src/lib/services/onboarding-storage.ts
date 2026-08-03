@@ -1,5 +1,5 @@
-
-import { inject, InjectionToken, DOCUMENT } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { inject, InjectionToken } from '@angular/core';
 
 /**
  * Persistence seam for remembering which tours a user has already seen, so a

@@ -1,5 +1,5 @@
-
-import { inject, Injectable, InjectionToken, DOCUMENT } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { inject, Injectable, InjectionToken } from '@angular/core';
 import {
   type AllowedButtons,
   type Alignment,
