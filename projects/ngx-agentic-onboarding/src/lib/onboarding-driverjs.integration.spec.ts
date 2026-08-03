@@ -1,4 +1,5 @@
 /// <reference types="jasmine" />
+import { ApplicationRef, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import {
@@ -304,5 +305,104 @@ describe('Orchestrator + DriverJsRenderer (integration)', () => {
     // The tour advanced instead of hanging on an event it never heard.
     expect(orchestrator.currentIndex()).toBe(1);
     sub.unsubscribe();
+  });
+});
+
+/**
+ * Zoneless coverage. From Angular 21 a fresh app is zoneless by default, so the
+ * `scheduleEventAdvance` branch that re-enters NgZone (or, with a NoopNgZone,
+ * schedules `afterNextRender` directly) is what a growing majority of consumers
+ * actually hit. The other suites all run under zone.js, where a change detection
+ * fires after every macrotask and flushes `afterNextRender` "for free" — so this
+ * path is otherwise never exercised. Here there is no zone: nothing ticks unless
+ * the engine itself drives a render, which is exactly what we assert.
+ */
+describe('Orchestrator + DriverJsRenderer (integration, zoneless)', () => {
+  let orchestrator: OnboardingOrchestrator;
+  let bus: OnboardingEventBus;
+  let appRef: ApplicationRef;
+  const createdEls: Element[] = [];
+
+  // No zone.js driving change detection. We pump macrotasks (the engine bounces
+  // its advance scheduling to a macrotask) and await app stability — we do NOT
+  // call tick() ourselves, so the advance only completes if the engine actually
+  // causes a render for its afterNextRender to fire on, the way a real zoneless
+  // app relies on the scheduler.
+  const settle = async () => {
+    for (let i = 0; i < 6; i++) {
+      await new Promise<void>((r) => setTimeout(r));
+      await appRef.whenStable();
+    }
+  };
+
+  function addTarget(id: string): Element {
+    const el = document.createElement('div');
+    el.id = id;
+    el.textContent = id;
+    document.body.appendChild(el);
+    createdEls.push(el);
+    return el;
+  }
+
+  function config(steps: OnboardingStep[]): OnboardingConfig {
+    return { version: '1.0.0', id: 'it-zoneless', steps };
+  }
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        provideOnboarding({ animate: false, nextLabel: 'Dalej', doneLabel: 'Zakończ' }),
+        { provide: ONBOARDING_STORAGE, useValue: noopStorage },
+      ],
+    });
+    orchestrator = TestBed.inject(OnboardingOrchestrator);
+    bus = TestBed.inject(OnboardingEventBus);
+    appRef = TestBed.inject(ApplicationRef);
+  });
+
+  afterEach(() => {
+    orchestrator.skip();
+    createdEls.forEach((el) => el.remove());
+    createdEls.length = 0;
+  });
+
+  it('advances a waitForEvent step under zoneless change detection', async () => {
+    addTarget('create');
+    orchestrator.start(
+      config([{ id: 's0', targetSelector: '#create', waitForEvent: 'DONE' }]),
+    );
+    await settle();
+
+    expect(orchestrator.status()).toBe('waiting');
+
+    bus.emit('DONE');
+    await settle();
+
+    // The advance is scheduled through afterNextRender; with no zone to tick for
+    // us, reaching 'completed' proves the engine drove the render itself.
+    expect(orchestrator.status()).toBe('completed');
+    expect(document.querySelector('.driver-popover')).toBeNull();
+  });
+
+  it('advances between two steps under zoneless (mid-tour, not just completion)', async () => {
+    addTarget('welcome');
+    addTarget('create');
+    orchestrator.start(
+      config([
+        { id: 's0', targetSelector: '#welcome', waitForEvent: 'GO' },
+        { id: 's1', targetSelector: '#create', title: 'Drugi' },
+      ]),
+    );
+    await settle();
+
+    expect(orchestrator.currentIndex()).toBe(0);
+    expect(orchestrator.status()).toBe('waiting');
+
+    bus.emit('GO');
+    await settle();
+
+    expect(orchestrator.currentIndex()).toBe(1);
+    expect(orchestrator.status()).not.toBe('waiting');
   });
 });
