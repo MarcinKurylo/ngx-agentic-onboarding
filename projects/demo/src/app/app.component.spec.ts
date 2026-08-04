@@ -36,6 +36,8 @@ describe('AppComponent', () => {
 
     fixture.nativeElement.querySelector('button').click();
 
-    expect(spy).toHaveBeenCalledWith(appOnboarding);
+    expect(spy).toHaveBeenCalledWith(
+      jasmine.objectContaining({ id: appOnboarding.id }),
+    );
   });
 });

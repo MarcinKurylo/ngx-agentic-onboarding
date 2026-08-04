@@ -19,7 +19,7 @@ import {
   ResolvedOnboardingOptions,
 } from '../models/onboarding-config.model';
 import { OnboardingLifecycleEvent } from '../models/onboarding-event.model';
-import { OnboardingStep } from '../models/onboarding-step.model';
+import { OnboardingEventMap, OnboardingStep } from '../models/onboarding-step.model';
 import { OnboardingEventBus } from './onboarding-event-bus.service';
 import {
   ONBOARDING_RENDERER,
@@ -162,7 +162,7 @@ export class OnboardingOrchestrator {
    * @param config Optional config to load; reuses the previously loaded one
    *               when omitted.
    */
-  start(config?: OnboardingConfig): void {
+  start<TEvents = OnboardingEventMap>(config?: OnboardingConfig<TEvents>): void {
     if (config) {
       this.load(config);
     }
@@ -225,7 +225,9 @@ export class OnboardingOrchestrator {
    *
    * @param config Optional config to load first.
    */
-  startIfNotCompleted(config?: OnboardingConfig): boolean {
+  startIfNotCompleted<TEvents = OnboardingEventMap>(
+    config?: OnboardingConfig<TEvents>,
+  ): boolean {
     if (config) {
       this.load(config);
     }
@@ -241,7 +243,7 @@ export class OnboardingOrchestrator {
    * by persistence) only when the config opts into auto-starting. Call this
    * once the host view/router is ready. Returns `true` if it started.
    */
-  autoStart(config?: OnboardingConfig): boolean {
+  autoStart<TEvents = OnboardingEventMap>(config?: OnboardingConfig<TEvents>): boolean {
     if (config) {
       this.load(config);
     }
@@ -249,13 +251,13 @@ export class OnboardingOrchestrator {
   }
 
   /** Whether the (optionally given) tour has been persisted as seen. */
-  hasCompleted(config?: OnboardingConfig): boolean {
+  hasCompleted<TEvents = OnboardingEventMap>(config?: OnboardingConfig<TEvents>): boolean {
     const key = this.storageKey(config ?? this.config);
     return key ? this.storage.isCompleted(key) : false;
   }
 
   /** Forget a tour's persisted completion so it can be shown again. */
-  reset(config?: OnboardingConfig): void {
+  reset<TEvents = OnboardingEventMap>(config?: OnboardingConfig<TEvents>): void {
     const key = this.storageKey(config ?? this.config);
     if (key) {
       this.storage.clear(key);
@@ -278,7 +280,7 @@ export class OnboardingOrchestrator {
   /**
    * Loads and normalises a config without starting the tour.
    */
-  private load(config: OnboardingConfig): void {
+  private load<TEvents = OnboardingEventMap>(config: OnboardingConfig<TEvents>): void {
     // Loading a new config over a running tour tears it down. Announce that as
     // a skip so the event stream stays balanced (a TourStarted always has a
     // matching end) — otherwise analytics count the replaced tour as never
@@ -290,7 +292,7 @@ export class OnboardingOrchestrator {
       });
     }
     this.teardown('idle');
-    this._config.set(config);
+    this._config.set(config as OnboardingConfig);
     this.options = { ...DEFAULT_ONBOARDING_OPTIONS, ...(config.options ?? {}) };
   }
 
@@ -800,7 +802,9 @@ export class OnboardingOrchestrator {
   }
 
   /** Builds the persistence key for a config, or null when it can't/shouldn't persist. */
-  private storageKey(cfg: OnboardingConfig | null): string | null {
+  private storageKey(
+    cfg: { readonly id?: string; readonly persist?: boolean; readonly version: string } | null,
+  ): string | null {
     if (!cfg?.id || cfg.persist === false) {
       return null;
     }

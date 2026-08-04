@@ -3,11 +3,30 @@ import { OnboardingConfig } from 'ngx-agentic-onboarding';
 import { AccountService } from './account.service';
 
 /**
+ * The business events this demo's tours wait on. Declaring them makes every
+ * `waitForEvent` below type-checked — a typo is a compile error (red squiggle),
+ * not a silent runtime timeout. Payloads are `void` here since the demo gates on
+ * the events themselves, not their data.
+ */
+interface DemoEvents {
+  MENU_OPENED: void;
+  FILTER_APPLIED: void;
+  MODAL_OPENED: void;
+  PROJECT_CREATED: void;
+  RANGE_CHANGED: void;
+  SETTINGS_SAVED: void;
+  CDK_MENU_OPENED: void;
+  CDK_VIEW_PICKED: void;
+  CDK_DIALOG_OPENED: void;
+  CDK_DIALOG_SAVED: void;
+}
+
+/**
  * Tour A — the flagship async flow. Coordinates loaders, a dropdown, a modal
  * and simulated HTTP entirely from data: the engine waits for business events
  * and for elements to appear after each "request"; no component knows about it.
  */
-export const appOnboarding: OnboardingConfig = {
+export const appOnboarding: OnboardingConfig<DemoEvents> = {
   version: '2.0.0',
   id: 'demo-tour',
   // Opt into remembering a dismissal (not just a completion) — the other demo
@@ -86,7 +105,7 @@ export const appOnboarding: OnboardingConfig = {
  * the team plan. It has its own `id`, so its completion is remembered
  * independently of the other tours.
  */
-export function buildDashboardTour(account: AccountService): OnboardingConfig {
+export function buildDashboardTour(account: AccountService): OnboardingConfig<DemoEvents> {
   return {
     version: '1.0.0',
     id: 'dashboard-tour',
@@ -148,7 +167,7 @@ export function buildDashboardTour(account: AccountService): OnboardingConfig {
  * normally. This tour walks through both — filling in a dialog and picking from a
  * dropdown panel — entirely event-driven, just like every other tour.
  */
-export function buildCdkTour(): OnboardingConfig {
+export function buildCdkTour(): OnboardingConfig<DemoEvents> {
   return {
     version: '1.0.0',
     id: 'cdk-tour',
@@ -227,7 +246,7 @@ export function buildCdkTour(): OnboardingConfig {
  * team-only section step and a `waitForEvent: 'SETTINGS_SAVED'` step with a
  * timeout that reveals "Next" if the user never saves.
  */
-export function buildSettingsTour(account: AccountService): OnboardingConfig {
+export function buildSettingsTour(account: AccountService): OnboardingConfig<DemoEvents> {
   return {
     version: '1.0.0',
     id: 'settings-tour',

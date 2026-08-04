@@ -163,17 +163,17 @@ export class AppComponent {
   readonly cdkTour = buildCdkTour();
 
   /** Always starts the given tour. */
-  start(config: OnboardingConfig): void {
+  start<T>(config: OnboardingConfig<T>): void {
     this.orchestrator.start(config);
   }
 
   /** Starts only if the tour hasn't been completed/dismissed yet. */
-  guarded(config: OnboardingConfig): void {
+  guarded<T>(config: OnboardingConfig<T>): void {
     this.orchestrator.startIfNotCompleted(config);
   }
 
   /** Clears persisted completion so the tour can be shown again. */
-  reset(config: OnboardingConfig): void {
+  reset<T>(config: OnboardingConfig<T>): void {
     this.orchestrator.reset(config);
   }
 }

@@ -37,6 +37,21 @@ export interface OnboardingHookContext {
 }
 
 /**
+ * Set of your app's business-event names. Declare one and pass it as the type
+ * argument to {@link OnboardingConfig} / {@link OnboardingStep} to get
+ * **type-checked `waitForEvent` names** — a typo is a compile error (red
+ * squiggle), not a silent runtime timeout. The permissive default keeps
+ * `waitForEvent` a plain `string`.
+ *
+ * @example
+ * ```ts
+ * type AppEvents = { PROJECT_CREATED: unknown; SETTINGS_SAVED: unknown };
+ * const tour: OnboardingConfig<AppEvents> = { … };
+ * ```
+ */
+export type OnboardingEventMap = Record<string, unknown>;
+
+/**
  * A single, declarative step of an onboarding tour.
  *
  * A step is intentionally decoupled from component code: everything the engine
@@ -44,8 +59,11 @@ export interface OnboardingHookContext {
  * data. The async-oriented flags ({@link waitForEvent}, {@link navigateToRoute},
  * {@link waitForSelectorTimeoutMs}) are what let the engine coordinate routing
  * and DOM changes without imperative hacks in the host app.
+ *
+ * @typeParam TEvents - Optional {@link OnboardingEventMap} that makes
+ * {@link waitForEvent} and {@link eventFilter} type-safe.
  */
-export interface OnboardingStep {
+export interface OnboardingStep<TEvents = OnboardingEventMap> {
   /** Stable, unique identifier of the step within its tour. */
   readonly id: string;
 
@@ -126,8 +144,9 @@ export interface OnboardingStep {
    * Business event that must fire on the {@link OnboardingEventBus} before the
    * step is considered complete. While set, the built-in "Next" action is
    * disabled and the engine waits for the user to perform the real action.
+   * Type-checked against {@link OnboardingEventMap} when one is supplied.
    */
-  readonly waitForEvent?: string;
+  readonly waitForEvent?: Extract<keyof TEvents, string>;
 
   /**
    * Optional predicate used to further qualify a {@link waitForEvent} match by
