@@ -10,6 +10,9 @@ import { AccountService } from './account.service';
 export const appOnboarding: OnboardingConfig = {
   version: '2.0.0',
   id: 'demo-tour',
+  // Opt into remembering a dismissal (not just a completion) — the other demo
+  // tours keep the default, where dismissing lets the tour reappear next visit.
+  persistOnSkip: true,
   steps: [
     {
       id: 'welcome',

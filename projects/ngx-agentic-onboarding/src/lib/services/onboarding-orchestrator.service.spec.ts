@@ -662,8 +662,22 @@ describe('OnboardingOrchestrator', () => {
       expect(storage.isCompleted(KEY)).toBeTrue();
     });
 
-    it('marks the tour as seen on skip()', async () => {
+    it('does not mark the tour as seen on skip() by default', async () => {
       orchestrator.start(config([{ id: 's0' }, { id: 's1' }]));
+      await flush();
+      orchestrator.skip();
+
+      // A dismissal no longer locks the tour out; only a completion persists.
+      expect(storage.isCompleted(KEY)).toBeFalse();
+    });
+
+    it('marks the tour as seen on skip() when persistOnSkip is set', async () => {
+      orchestrator.start({
+        version: '1.0.0',
+        id: 'test',
+        persistOnSkip: true,
+        steps: [{ id: 's0' }, { id: 's1' }],
+      });
       await flush();
       orchestrator.skip();
 
@@ -691,7 +705,8 @@ describe('OnboardingOrchestrator', () => {
       await flush();
       expect(orchestrator.isActive()).toBeTrue();
 
-      orchestrator.skip(); // marks seen
+      orchestrator.next(); // completes the single-step tour, marking it seen
+      await flush();
       expect(orchestrator.startIfNotCompleted(cfg)).toBeFalse();
       expect(orchestrator.isActive()).toBeFalse();
     });
