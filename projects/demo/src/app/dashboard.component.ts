@@ -9,26 +9,26 @@ import { ApiService, Stats, StatsRange } from './api.service';
   template: `
     <section class="card">
       <div class="toolbar">
-        <h2>Statystyki</h2>
+        <h2>Statistics</h2>
 
         <!-- Range switcher: all options live inside one highlighted box, so a
              tour can gate on picking one and the option stays clickable under
              the overlay. Picking reloads (loader) and fires RANGE_CHANGED. -->
-        <div id="range-seg" class="segmented" role="tablist" aria-label="Zakres">
-          <button type="button" [class.on]="range() === '7d'" (click)="pickRange('7d')">7 dni</button>
-          <button type="button" [class.on]="range() === '30d'" (click)="pickRange('30d')">30 dni</button>
-          <button type="button" [class.on]="range() === '90d'" (click)="pickRange('90d')">90 dni</button>
+        <div id="range-seg" class="segmented" role="tablist" aria-label="Range">
+          <button type="button" [class.on]="range() === '7d'" (click)="pickRange('7d')">7 days</button>
+          <button type="button" [class.on]="range() === '30d'" (click)="pickRange('30d')">30 days</button>
+          <button type="button" [class.on]="range() === '90d'" (click)="pickRange('90d')">90 days</button>
         </div>
       </div>
 
       @if (loading()) {
-        <div class="loader"><span class="spinner"></span> Ładowanie danych panelu…</div>
+        <div class="loader"><span class="spinner"></span> Loading dashboard data…</div>
       } @else {
         @if (stats(); as s) {
           <div id="kpi-tiles" class="tiles">
-            <div class="tile"><b>{{ s.projects }}</b><span>projekty</span></div>
-            <div class="tile"><b>{{ s.tasks }}</b><span>zadania</span></div>
-            <div class="tile"><b>{{ (s.completion * 100).toFixed(0) }}%</b><span>ukończenie</span></div>
+            <div class="tile"><b>{{ s.projects }}</b><span>projects</span></div>
+            <div class="tile"><b>{{ s.tasks }}</b><span>tasks</span></div>
+            <div class="tile"><b>{{ (s.completion * 100).toFixed(0) }}%</b><span>completion</span></div>
           </div>
 
           <!-- Premium panel: only rendered for the team plan. A tour step is
@@ -38,8 +38,8 @@ import { ApiService, Stats, StatsRange } from './api.service';
             <div id="insights-panel" class="insights">
               <span class="badge">PREMIUM</span>
               <div>
-                <b>{{ s.velocity }}</b> ukończonych zadań / tydzień
-                <p>Wgląd dostępny w planie zespołowym.</p>
+                <b>{{ s.velocity }}</b> completed tasks / week
+                <p>Insight available on the team plan.</p>
               </div>
             </div>
           }

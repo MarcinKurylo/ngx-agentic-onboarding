@@ -19,9 +19,9 @@ export const appConfig: ApplicationConfig = {
     { provide: OVERLAY_DEFAULT_CONFIG, useValue: { usePopover: false } },
     provideOnboarding({
       overlayOpacity: 0.65,
-      nextLabel: 'Dalej',
-      prevLabel: 'Wstecz',
-      doneLabel: 'Zakończ',
+      nextLabel: 'Next',
+      prevLabel: 'Back',
+      doneLabel: 'Finish',
     }),
   ],
 };

@@ -14,28 +14,28 @@ import { OnboardingEventBus } from 'ngx-agentic-onboarding';
   selector: 'app-cdk-project-dialog',
   imports: [FormsModule],
   template: `
-    <div class="dlg" role="dialog" aria-modal="true" aria-label="Nowy projekt">
-      <h3>Nowy projekt (CDK Dialog)</h3>
+    <div class="dlg" role="dialog" aria-modal="true" aria-label="New project">
+      <h3>New project (CDK Dialog)</h3>
 
       <label>
-        Nazwa
-        <input id="cdk-dialog-name" type="text" [(ngModel)]="name" placeholder="np. Orion" />
+        Name
+        <input id="cdk-dialog-name" type="text" [(ngModel)]="name" placeholder="e.g. Orion" />
       </label>
 
       <label>
-        Opis
+        Description
         <textarea
           id="cdk-dialog-desc"
           rows="3"
           [(ngModel)]="desc"
-          placeholder="Do czego służy ten projekt?"
+          placeholder="What is this project for?"
         ></textarea>
       </label>
 
       <div class="actions">
-        <button type="button" class="ghost" (click)="ref.close()">Anuluj</button>
+        <button type="button" class="ghost" (click)="ref.close()">Cancel</button>
         <button id="cdk-dialog-save" type="button" class="primary" (click)="save()">
-          Zapisz projekt
+          Save project
         </button>
       </div>
     </div>
@@ -90,14 +90,14 @@ export class CdkProjectDialogComponent {
     <section class="card">
       <h2>CDK Lab 🧩</h2>
       <p>
-        Elementy tej strony żyją w prawdziwych overlayach CDK (dialog +
-        connected overlay). Uruchom samouczek „Overlaye CDK", a przeprowadzi Cię
-        przez nie tak samo płynnie jak przez zwykłe elementy.
+        This page's interactive bits live in real CDK overlays (a dialog + a
+        connected overlay). Run the "CDK overlays" tour and it walks you through
+        them as smoothly as any regular element.
       </p>
 
       <div class="row">
         <button id="cdk-open-dialog" type="button" class="primary" (click)="openDialog()">
-          + Nowy projekt (Dialog)
+          + New project (Dialog)
         </button>
 
         <!-- Connected overlay: the panel renders into cdk-overlay-container,
@@ -111,7 +111,7 @@ export class CdkProjectDialogComponent {
           #menuOrigin="cdkOverlayOrigin"
           (click)="toggleMenu()"
         >
-          Widok: {{ view() }} ▾
+          View: {{ view() }} ▾
         </button>
 
         <ng-template
@@ -121,19 +121,19 @@ export class CdkProjectDialogComponent {
           (overlayOutsideClick)="menuOpen.set(false)"
         >
           <ul id="cdk-menu-panel" class="menu" role="menu">
-            <li><button type="button" (click)="pickView('Lista')">Lista</button></li>
+            <li><button type="button" (click)="pickView('List')">List</button></li>
             <li>
-              <button id="cdk-menu-board" type="button" (click)="pickView('Tablica')">
-                Tablica
+              <button id="cdk-menu-board" type="button" (click)="pickView('Board')">
+                Board
               </button>
             </li>
-            <li><button type="button" (click)="pickView('Kalendarz')">Kalendarz</button></li>
+            <li><button type="button" (click)="pickView('Calendar')">Calendar</button></li>
           </ul>
         </ng-template>
       </div>
 
       @if (lastSaved()) {
-        <p class="saved">Ostatnio zapisano: <strong>{{ lastSaved() }}</strong></p>
+        <p class="saved">Last saved: <strong>{{ lastSaved() }}</strong></p>
       }
     </section>
   `,
@@ -165,7 +165,7 @@ export class CdkLabComponent {
   private readonly bus = inject(OnboardingEventBus);
 
   readonly menuOpen = signal(false);
-  readonly view = signal('Lista');
+  readonly view = signal('List');
   readonly lastSaved = signal<string | null>(null);
 
   openDialog(): void {

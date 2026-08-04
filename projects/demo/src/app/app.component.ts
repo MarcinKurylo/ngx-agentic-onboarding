@@ -17,20 +17,20 @@ import {
     <header class="topbar">
       <strong>ngx-agentic-onboarding · demo</strong>
       <nav>
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Projekty</a>
-        <a routerLink="/dashboard" routerLinkActive="active">Panel</a>
-        <a routerLink="/settings" routerLinkActive="active">Ustawienia</a>
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Projects</a>
+        <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+        <a routerLink="/settings" routerLinkActive="active">Settings</a>
         <a routerLink="/cdk-lab" routerLinkActive="active">CDK Lab</a>
       </nav>
       <span class="plan" [class.team]="account.isTeam()">
-        Plan: {{ account.isTeam() ? 'Zespół' : 'Free' }}
+        Plan: {{ account.isTeam() ? 'Team' : 'Free' }}
       </span>
     </header>
 
     <div class="status">
       status: <b>{{ orchestrator.status() }}</b>
-      · krok: <b>{{ orchestrator.currentIndex() + 1 }}/{{ orchestrator.totalSteps() }}</b>
-      · ukończony: <b class="seen">{{ orchestrator.hasCompleted(appOnboarding) ? 'tak' : 'nie' }}</b>
+      · step: <b>{{ orchestrator.currentIndex() + 1 }}/{{ orchestrator.totalSteps() }}</b>
+      · completed: <b class="seen">{{ orchestrator.hasCompleted(appOnboarding) ? 'yes' : 'no' }}</b>
       @if (orchestrator.currentStep(); as step) {
         · <code>{{ step.id }}</code>
       }
@@ -38,38 +38,38 @@ import {
 
     <section class="launcher">
       <div class="launcher-head">
-        <h2>Samouczki</h2>
-        <p>Cztery niezależne scenariusze — każdy z osobnym, zapamiętywanym postępem.</p>
+        <h2>Tours</h2>
+        <p>Four independent scenarios — each with its own remembered progress.</p>
       </div>
       <div class="tours">
         <!-- Tour A: the flagship async flow (canonical button labels kept for e2e) -->
         <article class="tour">
           <div class="tour-top">
-            <h3>Pełny przepływ</h3>
-            @if (orchestrator.hasCompleted(appOnboarding)) { <span class="badge done">ukończony</span> }
+            <h3>Full flow</h3>
+            @if (orchestrator.hasCompleted(appOnboarding)) { <span class="badge done">completed</span> }
           </div>
-          <p>Dropdown → filtr → modal → symulowane HTTP → panel. Sterowany zdarzeniami.</p>
+          <p>Dropdown → filter → modal → simulated HTTP → dashboard. Event-driven.</p>
           <div class="row">
             <button type="button" class="primary" (click)="start(appOnboarding)" [disabled]="orchestrator.isActive()">
-              Uruchom samouczek
+              Run tour
             </button>
             <button type="button" class="ghost" (click)="guarded(appOnboarding)" [disabled]="orchestrator.isActive()">
-              Start jeśli nieukończony
+              Start if not completed
             </button>
-            <button type="button" class="link" (click)="reset(appOnboarding)">Resetuj postęp</button>
+            <button type="button" class="link" (click)="reset(appOnboarding)">Reset progress</button>
           </div>
         </article>
 
         <!-- Tour B: dashboard focus — conditional step + waitForEvent timeout -->
         <article class="tour">
           <div class="tour-top">
-            <h3>Panel w 60 sekund</h3>
-            @if (orchestrator.hasCompleted(dashboardTour)) { <span class="badge done">ukończony</span> }
+            <h3>Dashboard in 60 seconds</h3>
+            @if (orchestrator.hasCompleted(dashboardTour)) { <span class="badge done">completed</span> }
           </div>
-          <p>Przenosi na /dashboard. Krok zakresu ma <em>timeout</em>, a krok premium jest <em>warunkowy</em>.</p>
+          <p>Navigates to /dashboard. The range step has a <em>timeout</em>; the premium step is <em>conditional</em>.</p>
           <div class="row">
             <button type="button" class="primary" (click)="start(dashboardTour)" [disabled]="orchestrator.isActive()">
-              ▶ Uruchom
+              ▶ Run
             </button>
             <button type="button" class="link" (click)="reset(dashboardTour)">Reset</button>
           </div>
@@ -78,13 +78,13 @@ import {
         <!-- Tour C: settings — team-only conditional step + save timeout -->
         <article class="tour">
           <div class="tour-top">
-            <h3>Konfiguracja konta</h3>
-            @if (orchestrator.hasCompleted(settingsTour)) { <span class="badge done">ukończony</span> }
+            <h3>Account setup</h3>
+            @if (orchestrator.hasCompleted(settingsTour)) { <span class="badge done">completed</span> }
           </div>
-          <p>Przenosi na /settings. Sekcja zespołu pojawia się tylko dla planu <em>Zespół</em>.</p>
+          <p>Navigates to /settings. The team section appears only on the <em>Team</em> plan.</p>
           <div class="row">
             <button type="button" class="primary" (click)="start(settingsTour)" [disabled]="orchestrator.isActive()">
-              ▶ Uruchom
+              ▶ Run
             </button>
             <button type="button" class="link" (click)="reset(settingsTour)">Reset</button>
           </div>
@@ -94,13 +94,13 @@ import {
              elements inside a cdkDialog and a connected-overlay menu. -->
         <article class="tour cdk">
           <div class="tour-top">
-            <h3>Overlaye CDK 🧩</h3>
-            @if (orchestrator.hasCompleted(cdkTour)) { <span class="badge done">ukończony</span> }
+            <h3>CDK overlays 🧩</h3>
+            @if (orchestrator.hasCompleted(cdkTour)) { <span class="badge done">completed</span> }
           </div>
-          <p>Prowadzi przez prawdziwy <em>cdkDialog</em> i connected overlay — highlight działa w nich tak jak wszędzie.</p>
+          <p>Walks through a real <em>cdkDialog</em> and a connected overlay — highlighting works inside them just like anywhere.</p>
           <div class="row">
             <button type="button" class="primary" (click)="start(cdkTour)" [disabled]="orchestrator.isActive()">
-              ▶ Uruchom
+              ▶ Run
             </button>
             <button type="button" class="link" (click)="reset(cdkTour)">Reset</button>
           </div>
