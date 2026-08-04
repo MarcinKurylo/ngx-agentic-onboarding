@@ -40,6 +40,32 @@ The full API, options and theming guide live in the library README:
 
 ➡️ **[projects/ngx-agentic-onboarding/README.md](./projects/ngx-agentic-onboarding/README.md)**
 
+## Onboarding-author skill (Claude Code plugin)
+
+This repo doubles as a **Claude Code marketplace**. The companion `onboarding-author`
+skill — it generates a tour from an Angular app's routes, template ids and
+event-bus emissions instead of hand-written selectors — is packaged as a plugin you
+can install into any project:
+
+```
+/plugin marketplace add MarcinKurylo/ngx-agentic-onboarding
+/plugin install ngx-agentic-onboarding@marcinkurylo
+```
+
+Then just ask for a tour ("add onboarding to my app") and Claude runs the skill, or
+invoke it explicitly as `/ngx-agentic-onboarding:onboarding-author`. No pinned
+`version`, so the plugin tracks `main` — `/plugin update` pulls the latest skill.
+
+<details><summary>Layout &amp; validation</summary>
+
+- Marketplace catalog: `.claude-plugin/marketplace.json`
+- Plugin: `plugins/onboarding-author/` (manifest in `.claude-plugin/plugin.json`). Its
+  `skills/onboarding-author` **symlinks** the canonical `.claude/skills/onboarding-author`,
+  so the skill has a single source of truth; the symlink is dereferenced into the
+  plugin cache on install.
+- Validate before publishing: `/plugin validate ./plugins/onboarding-author`.
+</details>
+
 ## Repository layout
 
 This is an Angular CLI workspace:
@@ -49,6 +75,8 @@ This is an Angular CLI workspace:
 | `projects/ngx-agentic-onboarding` | The publishable library. |
 | `projects/demo` | A realistic demo app (loaders, HTTP, modal, dropdown, routing, CDK overlays) with four independent tours. |
 | `e2e` | Playwright end-to-end tests driving the demo. |
+| `.claude-plugin` / `plugins` | Claude Code marketplace catalog + the `onboarding-author` skill packaged as a plugin. |
+| `.claude/skills/onboarding-author` | The skill itself (canonical copy; the plugin symlinks it). |
 
 ## Develop
 
