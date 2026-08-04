@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { OnboardingConfig, OnboardingOrchestrator } from 'ngx-agentic-onboarding';
 
@@ -112,6 +112,7 @@ import {
       <router-outlet />
     </main>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     :host { display: block; font-family: system-ui, sans-serif; color: #111827; }
     .topbar {

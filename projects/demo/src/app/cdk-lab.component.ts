@@ -1,6 +1,6 @@
 import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog';
 import { OverlayModule } from '@angular/cdk/overlay';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { OnboardingEventBus } from 'ngx-agentic-onboarding';
 
@@ -40,6 +40,7 @@ import { OnboardingEventBus } from 'ngx-agentic-onboarding';
       </div>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     .dlg {
       background: #fff; border-radius: 14px; padding: 1.5rem;
@@ -136,6 +137,7 @@ export class CdkProjectDialogComponent {
       }
     </section>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     .card {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
