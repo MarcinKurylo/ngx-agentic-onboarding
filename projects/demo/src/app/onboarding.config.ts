@@ -39,6 +39,10 @@ export const appOnboarding: OnboardingConfig<DemoEvents> = {
       title: 'Welcome! 👋',
       content: 'An interactive tour of an async app. Click "Next" to begin.',
       placement: 'bottom',
+      // #welcome-card lives on the home route. Return there on init so the tour
+      // works when launched from any page (the launcher is on every route) —
+      // just like the other three tours navigate to their own start route.
+      navigateToRoute: '/',
     },
     {
       id: 'open-filter',
