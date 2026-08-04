@@ -174,6 +174,33 @@ route first (even if the step declares no `navigateToRoute`), so its target is
 actually there. Redundant navigations are skipped when you're already on the
 right route.
 
+## Highlighting inside CDK / Material overlays
+
+If a step targets an element inside an Angular **CDK / Material overlay** — a
+`MatDialog`/`cdkDialog`, `mat-menu`, `mat-select`, autocomplete, etc. — one
+compatibility note matters. Since **CDK 20.1** these overlays render in the
+browser's **top layer** (via the native Popover API, `popover="manual"`), which
+paints above all normal content **regardless of `z-index`**. The tour's Driver.js
+overlay lives in the normal layer, so it ends up *under* the CDK overlay: the
+step's spotlight and popover are hidden and the highlighted element looks
+un-highlighted.
+
+Opt the CDK overlays out of the top layer and normal `z-index` stacking applies
+again, letting the tour paint on top:
+
+```ts
+import { OVERLAY_DEFAULT_CONFIG } from '@angular/cdk/overlay';
+
+providers: [
+  // App-wide: every CDK overlay stays in the normal layer.
+  { provide: OVERLAY_DEFAULT_CONFIG, useValue: { usePopover: false } },
+];
+```
+
+The global token is the reliable lever — `MatDialog`/`Dialog` don't forward a
+per-call `usePopover`. For a standalone connected overlay you can also scope it
+to that one panel with `[cdkConnectedOverlayUsePopover]="false"`.
+
 ## Persistence
 
 Completing or dismissing a tour is remembered (localStorage, keyed by
