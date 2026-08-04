@@ -265,6 +265,26 @@ and you override it. Every popover carries a stable `ngx-onboarding` class.
 Per-step styling: set `popoverClass: 'step-finish'` on a step and scope your rules
 to it (as above).
 
+### Beyond CSS — rendering your own components
+
+Theming is CSS-level: the default popover renders escaped text (or raw HTML via a
+step's `allowHtml`), **not** live Angular components — so a design system whose
+tooltip *is* its own component isn't a drop-in via CSS variables alone. That's a
+deliberate boundary, not a dead end. The renderer is a **swappable seam**:
+implement `OnboardingRenderer` (a `show(step, target, controls)` / `hide()` pair)
+and bind it to the `ONBOARDING_RENDERER` token — now you own the popover UI
+entirely and can render it with your own components, while the orchestrator keeps
+driving events, routing and async DOM unchanged. The `controls` argument
+(`next()`/`prev()`/`skip()` + `index`/`total`/`isWaitingForEvent`) wires your
+buttons back to the engine.
+
+```ts
+providers: [
+  provideOnboarding(),   // binds the default Driver.js renderer…
+  { provide: ONBOARDING_RENDERER, useClass: MyDesignSystemRenderer }, // …last one wins
+];
+```
+
 ## Lifecycle events
 
 The engine publishes its own events on the same `OnboardingEventBus`, namespaced
