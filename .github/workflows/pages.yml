@@ -1,22 +1,20 @@
 # Deploys the demo app to GitHub Pages.
 #
-# NOT LIVE YET — this workflow is manual-only (`workflow_dispatch`), so it never
-# runs on its own. Two things gate a real deployment, both handled at launch:
-#   1. The repo must be PUBLIC. GitHub Pages from a private repo needs a paid
-#      plan; on a free account Pages is unavailable until the repo goes public.
-#   2. Pages must be enabled in Settings → Pages with "Source: GitHub Actions".
-#
-# At launch: flip the repo public, enable Pages, then either run this workflow
-# from the Actions tab or uncomment the `push` trigger below so every merge to
-# main redeploys. The demo will be served at
-# https://marcinkurylo.github.io/ngx-agentic-onboarding/
+# LIVE at https://marcinkurylo.github.io/ngx-agentic-onboarding/ — deploys
+# automatically on merges to main that touch the demo or the library (see the
+# `paths` filter below), and can also be run manually from the Actions tab.
 name: Deploy demo to GitHub Pages
 
 on:
   workflow_dispatch:
-  # Uncomment at launch to auto-deploy on every push to main:
-  # push:
-  #   branches: [main]
+  # Auto-deploy on merges to main that touch the demo or the library it
+  # consumes (skips docs-/skill-/CI-only changes to avoid pointless redeploys).
+  push:
+    branches: [main]
+    paths:
+      - 'projects/demo/**'
+      - 'projects/ngx-agentic-onboarding/**'
+      - '.github/workflows/pages.yml'
 
 # Least-privilege token scoped for Pages deployment.
 permissions:
