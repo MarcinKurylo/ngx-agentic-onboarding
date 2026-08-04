@@ -107,6 +107,20 @@ over guessing.
      dialog *will be*, not where it is. `delayMs` runs *after* the target resolves and
      *before* the cutout is measured, which is exactly this gap. Treat the value as a
      tunable guess and say so to the user.
+   - **Highlighting *inside* a CDK / Material overlay needs it out of the top layer.**
+     Since **CDK 20.1**, overlays (`MatDialog`/`cdkDialog`, `mat-menu`, `mat-select`,
+     autocomplete) render in the browser's **top layer** via the native Popover API
+     (`popover="manual"`), which paints above all normal content **regardless of
+     z-index** — including the tour's Driver.js overlay. So a step targeting an element
+     *inside* such an overlay looks un-highlighted and its popover is unclickable (the
+     CDK backdrop covers it). This is orthogonal to `delayMs` (timing) — it's stacking,
+     and **no z-index tweak fixes it.** When any step targets an element inside a CDK
+     overlay, add `{ provide: OVERLAY_DEFAULT_CONFIG, useValue: { usePopover: false } }`
+     (from `@angular/cdk/overlay`) to the app providers — it's the app-wide lever, and
+     `Dialog`/`MatDialog` don't forward a per-call `usePopover`. Make the edit, but
+     **call it out in the summary**: it changes CDK's overlay behaviour app-wide. (A
+     standalone connected overlay can instead be scoped with
+     `[cdkConnectedOverlayUsePopover]="false"`.)
 
    Bump `waitForSelectorTimeoutMs` on a step if a request is genuinely slow.
 
