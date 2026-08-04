@@ -1,4 +1,4 @@
-import { OnboardingStep } from './onboarding-step.model';
+import { OnboardingEventMap, OnboardingStep } from './onboarding-step.model';
 
 /**
  * What the engine does when a {@link OnboardingStep.waitForEvent} wait exceeds
@@ -68,8 +68,11 @@ export interface OnboardingOptions {
  *   ],
  * };
  * ```
+ *
+ * @typeParam TEvents - Optional {@link OnboardingEventMap} that type-checks every
+ * step's {@link OnboardingStep.waitForEvent} name and `eventFilter` payload.
  */
-export interface OnboardingConfig {
+export interface OnboardingConfig<TEvents = OnboardingEventMap> {
   /** Semantic version of this configuration, for persistence/migrations. */
   readonly version: string;
 
@@ -77,7 +80,7 @@ export interface OnboardingConfig {
   readonly id?: string;
 
   /** Ordered list of steps that make up the tour. */
-  readonly steps: readonly OnboardingStep[];
+  readonly steps: readonly OnboardingStep<TEvents>[];
 
   /**
    * Hint that this tour should auto-start (guarded by persistence) rather than

@@ -33,6 +33,23 @@ module.exports = tseslint.config(
     },
   },
   {
+    // The demo app uses the conventional "app" selector prefix, not the
+    // library's "ngx-ob". Scope it here so a raw `eslint` run (husky's
+    // lint-staged) agrees with `ng lint`, which already applies each project's
+    // own config.
+    files: ["projects/demo/**/*.ts"],
+    rules: {
+      "@angular-eslint/directive-selector": [
+        "error",
+        { type: "attribute", prefix: "app", style: "camelCase" },
+      ],
+      "@angular-eslint/component-selector": [
+        "error",
+        { type: "element", prefix: "app", style: "kebab-case" },
+      ],
+    },
+  },
+  {
     files: ["**/*.html"],
     extends: [
       ...angular.configs.templateRecommended,
