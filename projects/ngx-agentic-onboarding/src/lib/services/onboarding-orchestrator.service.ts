@@ -200,7 +200,11 @@ export class OnboardingOrchestrator {
     }
   }
 
-  /** Skip/abort the tour before completion. Counts as "seen" for persistence. */
+  /**
+   * Skip/abort the tour before completion. A dismissal is remembered as "seen"
+   * only when the config opts in with {@link OnboardingConfig.persistOnSkip};
+   * by default it is not, so the tour can reappear later.
+   */
   skip(): void {
     if (!this.isActive()) {
       return;
@@ -209,7 +213,9 @@ export class OnboardingOrchestrator {
       id: this.config?.id,
       atIndex: this._index(),
     });
-    this.persistSeen();
+    if (this.config?.persistOnSkip) {
+      this.persistSeen();
+    }
     this.teardown('skipped');
   }
 

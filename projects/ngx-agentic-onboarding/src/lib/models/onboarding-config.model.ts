@@ -87,11 +87,22 @@ export interface OnboardingConfig {
   readonly startImmediately?: boolean;
 
   /**
-   * Whether completing or dismissing the tour is remembered (via
-   * {@link OnboardingStorage}) so it is not shown again. Requires {@link id}.
-   * Defaults to `true`.
+   * Master switch for remembering this tour (via {@link OnboardingStorage}) so
+   * it is not shown again. Requires {@link id}. Defaults to `true`. Set `false`
+   * to disable persistence entirely — handy while authoring a tour so it always
+   * re-runs.
    */
   readonly persist?: boolean;
+
+  /**
+   * Whether *dismissing* the tour (Escape / close) also persists as "seen", the
+   * way a genuine completion does. Defaults to `false`: a dismissal does not lock
+   * the tour out, so it can reappear on the next visit — and you are not fighting
+   * localStorage every time you iterate on it. Only a real completion sticks.
+   * Requires {@link persist} to be on. Set `true` for the old "dismissed once,
+   * gone forever" behaviour.
+   */
+  readonly persistOnSkip?: boolean;
 
   /** Tour-wide timing and behaviour options. */
   readonly options?: OnboardingOptions;
