@@ -1,0 +1,21 @@
+{
+  "name": "ngx-agentic-onboarding",
+  "displayName": "ngx-agentic-onboarding — tour author",
+  "description": "Author ngx-agentic-onboarding product tours (a typed OnboardingConfig) from an Angular app's routes, template ids, and event-bus emissions — instead of hand-writing selectors.",
+  "author": {
+    "name": "Marcin Kuryło",
+    "email": "me@marcinkurylo.com",
+    "url": "https://github.com/MarcinKurylo"
+  },
+  "homepage": "https://github.com/MarcinKurylo/ngx-agentic-onboarding#readme",
+  "repository": "https://github.com/MarcinKurylo/ngx-agentic-onboarding",
+  "license": "MIT",
+  "keywords": [
+    "angular",
+    "onboarding",
+    "product-tour",
+    "walkthrough",
+    "claude-code",
+    "skill"
+  ]
+}
