@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { OnboardingEventBus } from 'ngx-agentic-onboarding';
 
@@ -102,6 +102,7 @@ import { AccountService, Plan } from './account.service';
       }
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     .card {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;

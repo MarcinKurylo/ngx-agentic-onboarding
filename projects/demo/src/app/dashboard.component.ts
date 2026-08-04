@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { OnboardingEventBus } from 'ngx-agentic-onboarding';
 
 import { AccountService } from './account.service';
@@ -53,6 +53,7 @@ import { ApiService, Stats, StatsRange } from './api.service';
       }
     </section>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     .card {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
