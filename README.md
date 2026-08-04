@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/MarcinKurylo/ngx-agentic-onboarding/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcinKurylo/ngx-agentic-onboarding/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Live demo](https://img.shields.io/badge/demo-live-6f42c1)](https://marcinkurylo.github.io/ngx-agentic-onboarding/)
 
 Lightweight, **config-driven** and **event-driven** onboarding / product-tour
 engine for Angular 16.2+. Describe an entire tour as a single typed object; an
@@ -9,6 +10,9 @@ async engine coordinates the transitions — waiting for business events, drivin
 the router, and waiting for elements to appear after loaders — and paints the
 overlay with a slimmed [Driver.js](https://driverjs.com). **No tour code in your
 components.**
+
+▶ **[Live demo](https://marcinkurylo.github.io/ngx-agentic-onboarding/)** — four
+independent tours over a realistic async app (loaders, a modal, routing and CDK overlays).
 
 ```ts
 export const tour: OnboardingConfig = {
