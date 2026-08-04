@@ -1,0 +1,73 @@
+# Deploys the demo app to GitHub Pages.
+#
+# NOT LIVE YET — this workflow is manual-only (`workflow_dispatch`), so it never
+# runs on its own. Two things gate a real deployment, both handled at launch:
+#   1. The repo must be PUBLIC. GitHub Pages from a private repo needs a paid
+#      plan; on a free account Pages is unavailable until the repo goes public.
+#   2. Pages must be enabled in Settings → Pages with "Source: GitHub Actions".
+#
+# At launch: flip the repo public, enable Pages, then either run this workflow
+# from the Actions tab or uncomment the `push` trigger below so every merge to
+# main redeploys. The demo will be served at
+# https://marcinkurylo.github.io/ngx-agentic-onboarding/
+name: Deploy demo to GitHub Pages
+
+on:
+  workflow_dispatch:
+  # Uncomment at launch to auto-deploy on every push to main:
+  # push:
+  #   branches: [main]
+
+# Least-privilege token scoped for Pages deployment.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; don't cancel an in-progress run.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The demo consumes the library from dist/, so build the library first.
+      - name: Build library
+        run: npx ng build ngx-agentic-onboarding
+
+      # base-href must match the project-Pages sub-path (the repo name).
+      - name: Build demo
+        run: npx ng build demo --base-href /ngx-agentic-onboarding/
+
+      # GitHub Pages has no SPA fallback: a deep link like /…/dashboard 404s.
+      # Serving a copy of index.html as 404.html lets the Angular router take
+      # over and resolve the route client-side.
+      - name: SPA fallback + disable Jekyll
+        run: |
+          cp dist/demo/browser/index.html dist/demo/browser/404.html
+          touch dist/demo/browser/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/demo/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
