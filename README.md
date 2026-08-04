@@ -47,7 +47,7 @@ This is an Angular CLI workspace:
 | Path | What |
 | --- | --- |
 | `projects/ngx-agentic-onboarding` | The publishable library. |
-| `projects/demo` | A realistic demo app (loaders, HTTP, modal, dropdown, routing) with three independent tours. |
+| `projects/demo` | A realistic demo app (loaders, HTTP, modal, dropdown, routing, CDK overlays) with four independent tours. |
 | `e2e` | Playwright end-to-end tests driving the demo. |
 
 ## Develop
