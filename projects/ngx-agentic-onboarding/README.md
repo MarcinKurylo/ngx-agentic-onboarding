@@ -7,6 +7,9 @@ router, and waiting for elements to appear after loaders — and paints the
 overlay with a slimmed [Driver.js](https://driverjs.com). No tour code in your
 components.
 
+▶ **[Live demo](https://marcinkurylo.github.io/ngx-agentic-onboarding/)** — four
+independent tours over a realistic async app.
+
 ## Install
 
 ```bash
