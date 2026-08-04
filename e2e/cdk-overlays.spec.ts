@@ -25,45 +25,45 @@ test('drives a tour through a cdkDialog and a connected-overlay menu', async ({
   await page.goto('/');
   await page
     .locator('article.tour.cdk')
-    .getByRole('button', { name: /Uruchom/ })
+    .getByRole('button', { name: /Run/ })
     .click();
 
   // 1/7 — welcome (centered); the engine navigated to /cdk-lab.
-  await expect(title).toHaveText('Overlaye CDK 🧩');
+  await expect(title).toHaveText('CDK overlays 🧩');
   await expect(page).toHaveURL(/\/cdk-lab$/);
   await nextBtn.click();
 
   // 2/7 — open the dialog (gated on CDK_DIALOG_OPENED).
-  await expect(title).toHaveText('Otwórz dialog');
+  await expect(title).toHaveText('Open the dialog');
   await expect(status).toContainText('waiting');
   await page.locator('#cdk-open-dialog').click();
 
   // 3/7 — a field *inside* the cdkDialog is highlighted and the popover is on top.
-  await expect(title).toHaveText('Nazwij projekt');
+  await expect(title).toHaveText('Name the project');
   const nameField = page.locator('#cdk-dialog-name');
   await expect(nameField).toHaveClass(/driver-active-element/);
   await nameField.fill('Orion');
   await nextBtn.click();
 
   // 4/7 — the dialog's save button is highlighted (gated on CDK_DIALOG_SAVED).
-  await expect(title).toHaveText('Zapisz');
+  await expect(title).toHaveText('Save');
   await expect(page.locator('#cdk-dialog-save')).toHaveClass(/driver-active-element/);
   await page.locator('#cdk-dialog-save').click();
 
   // 5/7 — the menu trigger is highlighted (gated on CDK_MENU_OPENED).
-  await expect(title).toHaveText('Rozwiń widok');
+  await expect(title).toHaveText('Open the view menu');
   await expect(page.locator('#cdk-menu-trigger')).toHaveClass(/driver-active-element/);
   await page.locator('#cdk-menu-trigger').click();
 
   // 6/7 — an item *inside* the connected overlay is highlighted (gated on CDK_VIEW_PICKED).
-  await expect(title).toHaveText('Wybierz „Tablica”');
+  await expect(title).toHaveText('Pick "Board"');
   const item = page.locator('#cdk-menu-board');
   await expect(item).toHaveClass(/driver-active-element/);
   await item.click();
 
   // 7/7 — finish.
-  await expect(title).toHaveText('Gotowe 🎉');
-  await expect(nextBtn).toHaveText('Zakończ');
+  await expect(title).toHaveText('Done 🎉');
+  await expect(nextBtn).toHaveText('Finish');
   await nextBtn.click();
   await expect(popover).toHaveCount(0);
 });

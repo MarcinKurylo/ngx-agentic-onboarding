@@ -11,34 +11,34 @@ type Filter = 'all' | ProjectStatus;
   imports: [FormsModule],
   template: `
     <section id="welcome-card" class="card welcome">
-      <h2>Panel projektów</h2>
-      <p>Przeglądaj, filtruj i twórz projekty. Dane ładują się asynchronicznie.</p>
+      <h2>Projects overview</h2>
+      <p>Browse, filter and create projects. Data loads asynchronously.</p>
     </section>
 
     <section class="card">
       <div class="toolbar">
-        <h3>Projekty</h3>
+        <h3>Projects</h3>
 
         <!-- Dropdown: opening it and picking an option both fire bus events -->
         <div class="dropdown">
           <button id="filter-btn" type="button" (click)="toggleFilter()">
-            Filtr: {{ filterLabel() }} ▾
+            Filter: {{ filterLabel() }} ▾
           </button>
           @if (filterOpen()) {
             <ul class="menu" role="menu">
               <li>
                 <button id="filter-all" type="button" (click)="applyFilter('all')">
-                  Wszystkie
+                  All
                 </button>
               </li>
               <li>
                 <button id="filter-active" type="button" (click)="applyFilter('active')">
-                  Aktywne
+                  Active
                 </button>
               </li>
               <li>
                 <button type="button" (click)="applyFilter('archived')">
-                  Zarchiwizowane
+                  Archived
                 </button>
               </li>
             </ul>
@@ -46,23 +46,23 @@ type Filter = 'all' | ProjectStatus;
         </div>
 
         <button id="new-project-btn" type="button" class="primary" (click)="openModal()">
-          + Nowy projekt
+          + New project
         </button>
       </div>
 
       <!-- Loader while the simulated request is in flight -->
       @if (loading()) {
-        <div class="loader"><span class="spinner"></span> Ładowanie projektów…</div>
+        <div class="loader"><span class="spinner"></span> Loading projects…</div>
       } @else {
         <ul id="projects-list" class="list">
           @for (p of projects(); track p.id) {
             <li>
               <span class="dot" [class.archived]="p.status === 'archived'"></span>
               <strong>{{ p.name }}</strong>
-              <em>{{ p.status === 'active' ? 'aktywny' : 'zarchiwizowany' }}</em>
+              <em>{{ p.status === 'active' ? 'active' : 'archived' }}</em>
             </li>
           } @empty {
-            <li class="muted">Brak projektów dla tego filtra.</li>
+            <li class="muted">No projects for this filter.</li>
           }
         </ul>
       }
@@ -71,20 +71,20 @@ type Filter = 'all' | ProjectStatus;
     <!-- Modal (no full backdrop — Driver.js provides the dimming during a tour) -->
     @if (modalOpen()) {
       <div class="modal" role="dialog" aria-modal="true">
-        <h3>Nowy projekt</h3>
+        <h3>New project</h3>
         <label>
-          Nazwa projektu
-          <input id="project-name" type="text" [(ngModel)]="draftName" placeholder="np. Orion" />
+          Project name
+          <input id="project-name" type="text" [(ngModel)]="draftName" placeholder="e.g. Orion" />
         </label>
         <div class="modal-actions">
           <button type="button" class="ghost" (click)="closeModal()" [disabled]="creating()">
-            Anuluj
+            Cancel
           </button>
           <button id="modal-submit" type="button" class="primary" (click)="submit()" [disabled]="creating()">
             @if (creating()) {
-              <span class="spinner small"></span> Tworzenie…
+              <span class="spinner small"></span> Creating…
             } @else {
-              Utwórz projekt
+              Create project
             }
           </button>
         </div>
@@ -160,9 +160,7 @@ export class HomeComponent implements OnInit {
   }
 
   filterLabel(): string {
-    return { all: 'Wszystkie', active: 'Aktywne', archived: 'Zarchiwizowane' }[
-      this.filter()
-    ];
+    return { all: 'All', active: 'Active', archived: 'Archived' }[this.filter()];
   }
 
   toggleFilter(): void {

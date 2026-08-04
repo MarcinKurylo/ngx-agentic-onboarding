@@ -26,7 +26,7 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const btn = fixture.nativeElement.querySelector('button');
-    expect(btn?.textContent).toContain('Uruchom samouczek');
+    expect(btn?.textContent).toContain('Run tour');
   });
 
   it('starts the tour with the demo config on click', () => {

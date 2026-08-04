@@ -9,10 +9,10 @@ import { AccountService, Plan } from './account.service';
   imports: [FormsModule],
   template: `
     <section id="profile-card" class="card">
-      <h2>Profil</h2>
+      <h2>Profile</h2>
 
       <label>
-        Nazwa wyświetlana
+        Display name
         <input
           id="profile-name"
           type="text"
@@ -22,7 +22,7 @@ import { AccountService, Plan } from './account.service';
       </label>
 
       <label>
-        E-mail
+        Email
         <input
           id="profile-email"
           type="email"
@@ -38,13 +38,13 @@ import { AccountService, Plan } from './account.service';
           [ngModel]="account.emailNotifications()"
           (ngModelChange)="edit(account.emailNotifications.set, $event)"
         />
-        Powiadomienia e-mail
+        Email notifications
       </label>
     </section>
 
     <section id="plan-card" class="card">
       <h2>Plan</h2>
-      <p class="muted">Przełącz na „Zespół", aby odblokować kroki i sekcje premium.</p>
+      <p class="muted">Switch to "Team" to unlock premium steps and sections.</p>
       <div id="plan-toggle" class="segmented" role="tablist">
         <button
           type="button"
@@ -58,7 +58,7 @@ import { AccountService, Plan } from './account.service';
           [class.on]="account.plan() === 'team'"
           (click)="setPlan('team')"
         >
-          Zespół
+          Team
         </button>
       </div>
 
@@ -66,7 +66,7 @@ import { AccountService, Plan } from './account.service';
       @if (account.isTeam()) {
         <div id="team-section" class="team">
           <label>
-            Liczba miejsc
+            Seats
             <input
               type="number"
               min="1"
@@ -80,7 +80,7 @@ import { AccountService, Plan } from './account.service';
 
     <!-- Appears only when there are unsaved edits — a dynamically-mounted target. -->
     @if (account.dirty()) {
-      <div id="unsaved-banner" class="banner">Masz niezapisane zmiany.</div>
+      <div id="unsaved-banner" class="banner">You have unsaved changes.</div>
     }
 
     <div class="save-row">
@@ -92,13 +92,13 @@ import { AccountService, Plan } from './account.service';
         (click)="save()"
       >
         @if (saving()) {
-          <span class="spinner small"></span> Zapisywanie…
+          <span class="spinner small"></span> Saving…
         } @else {
-          Zapisz zmiany
+          Save changes
         }
       </button>
       @if (savedAt()) {
-        <span class="saved">✓ Zapisano</span>
+        <span class="saved">✓ Saved</span>
       }
     </div>
   `,

@@ -46,7 +46,7 @@ export class ApiService {
   createProject(name: string): Observable<Project> {
     const project: Project = {
       id: Date.now(),
-      name: name.trim() || 'Bez nazwy',
+      name: name.trim() || 'Untitled',
       status: 'active',
     };
     this.projects = [project, ...this.projects];
