@@ -72,6 +72,12 @@ over guessing.
    (the injected `OnboardingEventBus`). When a step should pause until the user
    performs a real action, set `waitForEvent: 'THAT_EVENT'`. While waiting, the
    "Next" button is hidden — the user must do the thing.
+   - **Type the event names.** Declare an `interface AppEvents { PROJECT_CREATED:
+     unknown; SETTINGS_SAVED: unknown; … }` and annotate the config as
+     `OnboardingConfig<AppEvents>`. Every `waitForEvent` is then checked against it —
+     a typo is a build error (with a "did you mean"), not a silent timeout. Do this
+     by default: it turns your own mistakes into compile errors, which is exactly
+     what step 9's build is for.
    - If the action carries data and the step should only advance for a specific
      one, add `eventFilter: (p) => …`.
    - If the app does **not** yet emit an event you need, **add the `bus.emit('…')`
@@ -136,16 +142,17 @@ over guessing.
 ## The schema (authoritative)
 
 ```ts
-interface OnboardingConfig {
+interface OnboardingConfig<TEvents = Record<string, unknown>> {  // pass an event map → typed waitForEvent
   version: string;              // semver — bump to re-show a persisted tour
   id?: string;                  // required for persistence + multi-tour
-  steps: readonly OnboardingStep[];
+  steps: readonly OnboardingStep<TEvents>[];
   startImmediately?: boolean;   // auto-start (guarded by persistence). default false
   persist?: boolean;            // remember completion in localStorage. default true
+  persistOnSkip?: boolean;      // also remember a DISMISS (Escape/close), not just completion. default false
   options?: OnboardingOptions;  // TIMING/BEHAVIOUR only (button labels: per-step below, or global in provideOnboarding)
 }
 
-interface OnboardingStep {
+interface OnboardingStep<TEvents = Record<string, unknown>> {
   id: string;                       // stable, unique within the tour
   targetSelector?: string;          // element to highlight; omit for a centered step
   title?: string;                   // heading; escaped as plain text by default
@@ -158,8 +165,8 @@ interface OnboardingStep {
   enabled?: (ctx: {step; index; total}) => boolean | Promise<boolean>;  // skip when false
 
   // async / event-driven control
-  waitForEvent?: string;            // pause until this event fires on the bus; hides "Next"
-  eventFilter?: (payload: unknown) => boolean;   // only advance on a matching payload
+  waitForEvent?: keyof TEvents & string;  // pause until this event fires; type-checked vs the event map
+  eventFilter?: (payload: unknown) => boolean;   // only advance on a matching payload (payload stays unknown)
   waitForEventTimeoutMs?: number;   // per-step override; 0 = wait forever
   navigateToRoute?: string;         // navigate, then wait for the target
   waitForSelectorTimeoutMs?: number;// per-step DOM wait override
@@ -240,7 +247,12 @@ Emit two things.
 ```ts
 import { OnboardingConfig } from 'ngx-agentic-onboarding';
 
-export const appOnboarding: OnboardingConfig = {
+// Declare the events the tour waits on → every waitForEvent below is type-checked.
+interface AppEvents {
+  PROJECT_CREATED: unknown;
+}
+
+export const appOnboarding: OnboardingConfig<AppEvents> = {
   version: '1.0.0',
   id: 'main',
   options: { waitForEventTimeoutMs: 8000, onWaitTimeout: 'reveal' },
@@ -267,10 +279,12 @@ export const appOnboarding: OnboardingConfig = {
   matching the config exactly.
 - A trigger. For a first-run tour prefer `autoStart(cfg)` — but it only fires when
   the config sets **`startImmediately: true`** *and* the tour isn't already
-  persisted as seen. Since completion is remembered (localStorage), **also add a
-  manual replay** (a small button calling `reset(cfg)` then `start(cfg)`), or set
-  `persist: false` until the tour is accepted — otherwise it runs once per browser
-  profile and you can't re-check it while iterating.
+  persisted as seen. A **dismissal no longer sticks** (default `persistOnSkip:
+  false`), so a dismissed tour reappears next load; only a **completion** is
+  remembered. To re-test *completed* runs while iterating, add a manual replay (a
+  button calling `reset(cfg)` then `start(cfg)`) or set `persist: false` until the
+  tour is accepted. Set `persistOnSkip: true` only if a dismissal should count as
+  "seen forever".
 
 Close by reporting **what you changed in the user's code** and any **decisions or
 assumptions worth eyeballing** (timing, conditional targets) — not a to-do list of
