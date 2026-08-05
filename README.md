@@ -67,16 +67,22 @@ any project:
 ```
 
 Then just ask for a tour ("add onboarding to my app") and Claude runs the skill, or
-invoke it explicitly as `/ngx-onboarding-flow:onboarding-author`. No pinned
-`version`, so the plugin tracks `main` — `/plugin update` pulls the latest skill.
+invoke it explicitly as `/ngx-onboarding-flow:onboarding-author`. The plugin also
+ships the `/onboarding` shortcut. No pinned `version`, so it tracks `main` —
+`/plugin update` pulls the latest.
+
+Installing it is the whole distribution story: there is nothing to copy into
+`~/.claude` by hand, and nothing to keep in sync afterwards.
 
 <details><summary>Layout &amp; validation</summary>
 
 - Marketplace catalog: `.claude-plugin/marketplace.json`
-- Plugin: `plugins/onboarding-author/` (manifest in `.claude-plugin/plugin.json`). Its
-  `skills/onboarding-author` **symlinks** the canonical `.claude/skills/onboarding-author`,
-  so the skill has a single source of truth; the symlink is dereferenced into the
-  plugin cache on install.
+- Plugin: `plugins/onboarding-author/` (manifest in `.claude-plugin/plugin.json`).
+  Both `skills/onboarding-author` and `commands/onboarding.md` are **symlinks** to
+  the canonical copies under `.claude/`, so each has exactly one source of truth;
+  git stores them as symlinks (mode `120000`) and Claude Code dereferences them
+  into the plugin cache on install. Edit the file under `.claude/` — never add a
+  second copy under `plugins/`.
 - Validate before publishing: `/plugin validate ./plugins/onboarding-author`.
 </details>
 
