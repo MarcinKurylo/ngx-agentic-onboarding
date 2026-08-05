@@ -15,18 +15,39 @@ permissions:
   contents: read
 
 jobs:
+  # Gate 0 — the tag must name the version we are about to publish. Runs first
+  # and alone: a mismatch fails in seconds instead of after the whole matrix.
+  # Without this, tagging v0.2.0 while package.json still says 0.1.0 publishes
+  # 0.1.0 under a v0.2.0 tag, silently and unrepeatably.
+  verify-tag:
+    name: Tag matches package version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compare tag with package.json
+        run: |
+          PKG=$(node -p "require('./projects/ngx-onboarding-flow/package.json').version")
+          if [ "v$PKG" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match the library version ($PKG). Expected tag v$PKG — bump projects/ngx-onboarding-flow/package.json or retag."
+            exit 1
+          fi
+          echo "Tag $GITHUB_REF_NAME matches library version $PKG."
+
   # Gate 1 — the same lint / unit+integration / e2e suite that runs on every PR.
   ci:
+    needs: verify-tag
     uses: ./.github/workflows/ci.yml
 
   # Gate 2 — install + build a consumer app on every supported Angular (16–22).
   compat:
+    needs: verify-tag
     uses: ./.github/workflows/compat-matrix.yml
 
   # Gate 3 — publish (currently a no-op trace; see the disabled block).
   publish:
     name: Publish to npm (disabled)
-    needs: [ci, compat]
+    needs: [verify-tag, ci, compat]
     runs-on: ubuntu-latest
     # Provenance publishing additionally needs:
     #   permissions:
@@ -52,10 +73,11 @@ jobs:
           echo "npm publish is intentionally disabled until we choose to release."
           echo "dist/ngx-onboarding-flow is built and ready to publish."
           # === To arm a real release, do ALL of the following: ===
-          # 1. Create an npm automation token; add it as the NPM_TOKEN repo secret.
+          # 1. [DONE] npm automation token added as the NPM_TOKEN repo secret.
           # 2. Uncomment `registry-url` on setup-node above.
           # 3. Uncomment `id-token: write` in this job's permissions (for --provenance).
-          # 4. Bump projects/ngx-onboarding-flow/package.json `version` to match the tag.
+          # 4. [ENFORCED] The tag/version match is checked by the verify-tag job,
+          #    which gates everything else — no need to remember it by hand.
           # 5. Uncomment the two lines below:
           #
           # cd dist/ngx-onboarding-flow
