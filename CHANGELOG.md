@@ -11,7 +11,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 First public release. A config-driven, event-driven onboarding / product-tour
 engine for Angular: describe a whole tour as one typed `OnboardingConfig` and an
 async engine coordinates the transitions, painting the overlay with a slimmed
-[Driver.js](https://driverjs.com). No tour code in your components.
+[Driver.js](https://driverjs.com). Components contribute a domain event where the
+real action happens; no tour logic lives in them.
 
 Supports **Angular 16.2 through 22** (`@angular/router` optional). The package
 ships only injectable services, which is what lets one build serve that range.
