@@ -5,6 +5,7 @@
 [![Angular](https://img.shields.io/badge/Angular-16.2%20%E2%80%93%2022-dd0031)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Live demo](https://img.shields.io/badge/demo-live-6f42c1)](https://marcinkurylo.github.io/ngx-onboarding-flow/)
+[![Edit on StackBlitz](https://img.shields.io/badge/StackBlitz-edit%20the%20tour-1389FD?logo=stackblitz)](https://stackblitz.com/github/MarcinKurylo/ngx-onboarding-flow/tree/main/examples/stackblitz)
 
 **Describe the whole tour once, as data. The engine handles the async.**
 

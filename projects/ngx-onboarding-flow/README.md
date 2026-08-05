@@ -21,6 +21,9 @@ Driver.js.
 
 ▶ **[Live demo](https://marcinkurylo.github.io/ngx-onboarding-flow/)** — four
 independent tours over a realistic async app.
+✏️ **[Try it on StackBlitz](https://stackblitz.com/github/MarcinKurylo/ngx-onboarding-flow/tree/main/examples/stackblitz)**
+— a five-step tour in a tiny app you can edit in the browser, before installing
+anything.
 
 ## Install
 
