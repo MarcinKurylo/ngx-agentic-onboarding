@@ -86,9 +86,10 @@ invoke it explicitly as `/ngx-onboarding-flow:onboarding-author`. No pinned
 
 ## Documentation
 
-The full API, options and theming guide live in the library README:
-
-➡️ **[projects/ngx-onboarding-flow/README.md](./projects/ngx-onboarding-flow/README.md)**
+- **[Guide](./projects/ngx-onboarding-flow/README.md)** — setup, options, theming,
+  resilience, the CDK-overlay caveat. Start here.
+- **[API reference](./docs/api/)** — every export, signature and option,
+  generated from the source and checked in CI, so it can't drift.
 
 ## Repository layout
 

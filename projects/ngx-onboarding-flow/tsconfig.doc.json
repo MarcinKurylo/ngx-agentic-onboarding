@@ -1,0 +1,14 @@
+/* TypeDoc-only project config.
+ *
+ * tsconfig.lib.json sets `inlineSources` for ng-packagr's declaration maps,
+ * which TS rejects unless a source map is also being emitted (TS5051). TypeDoc
+ * emits nothing, so it just trips over the flag. Turning it off here keeps the
+ * build config untouched.
+ */
+{
+  "extends": "./tsconfig.lib.json",
+  "compilerOptions": {
+    "inlineSources": false,
+    "declarationMap": false
+  }
+}
