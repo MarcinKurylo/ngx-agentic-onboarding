@@ -1,6 +1,6 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { OnboardingConfig, OnboardingOrchestrator } from 'ngx-agentic-onboarding';
+import { OnboardingConfig, OnboardingOrchestrator } from 'ngx-onboarding-flow';
 
 import { AccountService } from './account.service';
 import {
@@ -15,7 +15,7 @@ import {
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <header class="topbar">
-      <strong>ngx-agentic-onboarding · demo</strong>
+      <strong>ngx-onboarding-flow · demo</strong>
       <nav>
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Projects</a>
         <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>

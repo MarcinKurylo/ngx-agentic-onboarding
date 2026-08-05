@@ -1,7 +1,7 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { OVERLAY_DEFAULT_CONFIG } from '@angular/cdk/overlay';
 import { provideRouter } from '@angular/router';
-import { provideOnboarding } from 'ngx-agentic-onboarding';
+import { provideOnboarding } from 'ngx-onboarding-flow';
 
 import { routes } from './app.routes';
 

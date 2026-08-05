@@ -21,7 +21,7 @@ import { ONBOARDING_RENDERER } from './services/onboarding-renderer';
  * ```ts
  * // app.config.ts
  * import 'driver.js/dist/driver.css'; // or @import in your global styles
- * import { provideOnboarding } from 'ngx-agentic-onboarding';
+ * import { provideOnboarding } from 'ngx-onboarding-flow';
  *
  * export const appConfig: ApplicationConfig = {
  *   providers: [

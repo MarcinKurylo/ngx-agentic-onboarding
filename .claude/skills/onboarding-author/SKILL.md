@@ -1,16 +1,16 @@
 ---
 name: onboarding-author
 description: >-
-  Author an ngx-agentic-onboarding tour (a typed OnboardingConfig) for an Angular
+  Author an ngx-onboarding-flow tour (a typed OnboardingConfig) for an Angular
   app by scanning its routes, template ids, and event-bus emissions instead of
   hand-writing selectors. Use whenever the user wants to create, generate, extend,
   or wire up a product tour / user onboarding / walkthrough for an Angular project
-  that uses (or is adopting) ngx-agentic-onboarding. Triggers: "onboarding tour",
+  that uses (or is adopting) ngx-onboarding-flow. Triggers: "onboarding tour",
   "product tour", "walkthrough", "generate OnboardingConfig", "add onboarding to
   my app", "wire up provideOnboarding".
 ---
 
-# Authoring an ngx-agentic-onboarding tour
+# Authoring an ngx-onboarding-flow tour
 
 You are turning an existing Angular app into a working onboarding tour **from its
 own code**. The whole tour is one typed `OnboardingConfig` object — no tour logic
@@ -23,7 +23,7 @@ assumption you make.
 
 ## When this applies
 
-The app uses `ngx-agentic-onboarding` (or is adopting it). It renders tours with a
+The app uses `ngx-onboarding-flow` (or is adopting it). It renders tours with a
 slimmed Driver.js overlay behind an `OnboardingOrchestrator` that coordinates
 async transitions: waiting for business events, driving the router, and waiting
 for elements to appear after loaders.
@@ -259,7 +259,7 @@ Emit two things.
 **1. `onboarding.config.ts`** — the typed config:
 
 ```ts
-import { OnboardingConfig } from 'ngx-agentic-onboarding';
+import { OnboardingConfig } from 'ngx-onboarding-flow';
 
 // Declare the events the tour waits on → every waitForEvent below is type-checked.
 interface AppEvents {
@@ -284,7 +284,7 @@ export const appOnboarding: OnboardingConfig<AppEvents> = {
 **2. Wiring** — apply these yourself where missing:
 
 - `provideOnboarding({ … })` in `app.config.ts`. Import the stylesheets too:
-  `driver.js/dist/driver.css` and (optional) `ngx-agentic-onboarding/styles/theme.css`.
+  `driver.js/dist/driver.css` and (optional) `ngx-onboarding-flow/styles/theme.css`.
   In an Angular app the reliable place is the **`styles` array in `angular.json`**;
   a `@import` in `styles.scss` also works but is easier to get wrong — verify it
   actually loaded (the popover renders unstyled if it didn't).

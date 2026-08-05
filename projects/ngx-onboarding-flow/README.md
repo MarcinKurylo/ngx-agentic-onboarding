@@ -1,4 +1,4 @@
-# ngx-agentic-onboarding
+# ngx-onboarding-flow
 
 Lightweight, **config-driven** and **event-driven** onboarding / product-tour
 engine for Angular 16.2+. Define the whole tour in one typed object; the engine
@@ -7,13 +7,13 @@ router, and waiting for elements to appear after loaders — and paints the
 overlay with a slimmed [Driver.js](https://driverjs.com). No tour code in your
 components.
 
-▶ **[Live demo](https://marcinkurylo.github.io/ngx-agentic-onboarding/)** — four
+▶ **[Live demo](https://marcinkurylo.github.io/ngx-onboarding-flow/)** — four
 independent tours over a realistic async app.
 
 ## Install
 
 ```bash
-npm i ngx-agentic-onboarding driver.js
+npm i ngx-onboarding-flow driver.js
 ```
 
 ## Compatibility
@@ -46,7 +46,7 @@ Caveats to know:
 ```ts
 // app.config.ts
 import { provideRouter } from '@angular/router';
-import { provideOnboarding } from 'ngx-agentic-onboarding';
+import { provideOnboarding } from 'ngx-onboarding-flow';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -60,13 +60,13 @@ Import the stylesheets once (global styles):
 
 ```scss
 @import 'driver.js/dist/driver.css';
-@import 'ngx-agentic-onboarding/styles/theme.css'; /* optional themeable default */
+@import 'ngx-onboarding-flow/styles/theme.css'; /* optional themeable default */
 ```
 
 ## Define a tour
 
 ```ts
-import { OnboardingConfig } from 'ngx-agentic-onboarding';
+import { OnboardingConfig } from 'ngx-onboarding-flow';
 
 export const appOnboarding: OnboardingConfig = {
   version: '1.0.0',

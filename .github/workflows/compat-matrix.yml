@@ -26,12 +26,12 @@ jobs:
       - run: npm ci
 
       - name: Build library
-        run: npx ng build ngx-agentic-onboarding
+        run: npx ng build ngx-onboarding-flow
 
       - name: Pack tarball
         run: |
           mkdir -p "$GITHUB_WORKSPACE/pkg"
-          cd dist/ngx-agentic-onboarding
+          cd dist/ngx-onboarding-flow
           npm pack --pack-destination "$GITHUB_WORKSPACE/pkg"
 
       - uses: actions/upload-artifact@v7
@@ -82,7 +82,7 @@ jobs:
             OnboardingOrchestrator,
             OnboardingEventBus,
             type OnboardingConfig,
-          } from 'ngx-agentic-onboarding';
+          } from 'ngx-onboarding-flow';
 
           const tour: OnboardingConfig = {
             version: '1.0.0',

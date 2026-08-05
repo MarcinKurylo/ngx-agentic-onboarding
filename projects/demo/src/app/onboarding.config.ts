@@ -1,4 +1,4 @@
-import { OnboardingConfig } from 'ngx-agentic-onboarding';
+import { OnboardingConfig } from 'ngx-onboarding-flow';
 
 import { AccountService } from './account.service';
 

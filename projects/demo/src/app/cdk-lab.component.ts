@@ -2,7 +2,7 @@ import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog';
 import { OverlayModule } from '@angular/cdk/overlay';
 import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { OnboardingEventBus } from 'ngx-agentic-onboarding';
+import { OnboardingEventBus } from 'ngx-onboarding-flow';
 
 /**
  * Content of the CDK dialog. Rendered by the CDK into `.cdk-overlay-container`

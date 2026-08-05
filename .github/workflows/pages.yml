@@ -1,6 +1,6 @@
 # Deploys the demo app to GitHub Pages.
 #
-# LIVE at https://marcinkurylo.github.io/ngx-agentic-onboarding/ — deploys
+# LIVE at https://marcinkurylo.github.io/ngx-onboarding-flow/ — deploys
 # automatically on merges to main that touch the demo or the library (see the
 # `paths` filter below), and can also be run manually from the Actions tab.
 name: Deploy demo to GitHub Pages
@@ -13,7 +13,7 @@ on:
     branches: [main]
     paths:
       - 'projects/demo/**'
-      - 'projects/ngx-agentic-onboarding/**'
+      - 'projects/ngx-onboarding-flow/**'
       - '.github/workflows/pages.yml'
 
 # Least-privilege token scoped for Pages deployment.
@@ -42,11 +42,11 @@ jobs:
 
       # The demo consumes the library from dist/, so build the library first.
       - name: Build library
-        run: npx ng build ngx-agentic-onboarding
+        run: npx ng build ngx-onboarding-flow
 
       # base-href must match the project-Pages sub-path (the repo name).
       - name: Build demo
-        run: npx ng build demo --base-href /ngx-agentic-onboarding/
+        run: npx ng build demo --base-href /ngx-onboarding-flow/
 
       # GitHub Pages has no SPA fallback: a deep link like /…/dashboard 404s.
       # Serving a copy of index.html as 404.html lets the Angular router take

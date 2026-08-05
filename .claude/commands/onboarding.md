@@ -1,9 +1,9 @@
 ---
-description: Generate an ngx-agentic-onboarding tour (OnboardingConfig) from this Angular app
+description: Generate an ngx-onboarding-flow tour (OnboardingConfig) from this Angular app
 argument-hint: [optional: describe the flow to onboard, e.g. "first-run: create a project then see the dashboard"]
 ---
 
-Author an `ngx-agentic-onboarding` tour for this app using the **onboarding-author**
+Author an `ngx-onboarding-flow` tour for this app using the **onboarding-author**
 skill. Follow that skill's procedure exactly.
 
 Flow to build (may be empty): $ARGUMENTS

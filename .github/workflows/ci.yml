@@ -44,11 +44,11 @@ jobs:
 
       # The demo spec imports the library from dist/, so build it first.
       - name: Build library
-        run: npx ng build ngx-agentic-onboarding
+        run: npx ng build ngx-onboarding-flow
 
       - name: Test library (unit + integration) with coverage thresholds
         run: >-
-          npx ng test ngx-agentic-onboarding --watch=false --code-coverage
+          npx ng test ngx-onboarding-flow --watch=false --code-coverage
           --browsers=ChromeHeadlessNoSandbox --karma-config karma.conf.js
 
       - name: Test demo

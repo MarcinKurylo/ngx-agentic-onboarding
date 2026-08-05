@@ -7,23 +7,23 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "ngx-agentic-onboarding": {
+    "ngx-onboarding-flow": {
       "projectType": "library",
-      "root": "projects/ngx-agentic-onboarding",
-      "sourceRoot": "projects/ngx-agentic-onboarding/src",
+      "root": "projects/ngx-onboarding-flow",
+      "sourceRoot": "projects/ngx-onboarding-flow/src",
       "prefix": "ngx-ob",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "project": "projects/ngx-agentic-onboarding/ng-package.json"
+            "project": "projects/ngx-onboarding-flow/ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/ngx-agentic-onboarding/tsconfig.lib.prod.json"
+              "tsConfig": "projects/ngx-onboarding-flow/tsconfig.lib.prod.json"
             },
             "development": {
-              "tsConfig": "projects/ngx-agentic-onboarding/tsconfig.lib.json"
+              "tsConfig": "projects/ngx-onboarding-flow/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"
@@ -31,7 +31,7 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "tsConfig": "projects/ngx-agentic-onboarding/tsconfig.spec.json",
+            "tsConfig": "projects/ngx-onboarding-flow/tsconfig.spec.json",
             "polyfills": [
               "zone.js",
               "zone.js/testing"
@@ -42,10 +42,10 @@
           "builder": "@angular-eslint/builder:lint",
           "options": {
             "lintFilePatterns": [
-              "projects/ngx-agentic-onboarding/**/*.ts",
-              "projects/ngx-agentic-onboarding/**/*.html"
+              "projects/ngx-onboarding-flow/**/*.ts",
+              "projects/ngx-onboarding-flow/**/*.html"
             ],
-            "eslintConfig": "projects/ngx-agentic-onboarding/eslint.config.js"
+            "eslintConfig": "projects/ngx-onboarding-flow/eslint.config.js"
           }
         }
       }
