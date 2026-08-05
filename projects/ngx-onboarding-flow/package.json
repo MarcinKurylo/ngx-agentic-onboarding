@@ -1,6 +1,6 @@
 {
   "name": "ngx-onboarding-flow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Config-driven, event-driven onboarding & product-tour engine for Angular. Define the whole tour in one typed object; the engine coordinates async transitions (business events, routing, DOM) and paints the overlay with Driver.js.",
   "keywords": [
     "angular",
