@@ -12,7 +12,7 @@ import { tour } from './tour';
       <strong>ngx-onboarding-flow</strong>
       <nav>
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Tasks</a>
-        <a routerLink="/stats" routerLinkActive="active">Stats</a>
+        <a id="nav-stats" routerLink="/stats" routerLinkActive="active">Stats</a>
       </nav>
       <button class="ghost" (click)="replay()">↻ Show me around</button>
     </header>
