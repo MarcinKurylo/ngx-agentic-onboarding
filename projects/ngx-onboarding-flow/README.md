@@ -9,7 +9,10 @@ across components. This library keeps it out: the entire flow is one typed
 `OnboardingConfig`, and an async engine coordinates the transitions — waiting for
 your business events, driving the router, waiting for elements to appear after
 loaders — then paints the overlay with a slimmed [Driver.js](https://driverjs.com).
-Config-driven, event-driven, Angular 16.2+. **No tour code in your components.**
+Config-driven, event-driven, Angular 16.2–22. Your components contribute one line
+where the real action happens — `bus.emit('SAVED', payload)`, a domain event rather
+than a tour instruction. **No tour logic in your components:** no step indices, no
+flags, no subscriptions, nothing that changes when you reorder the tour.
 
 ▶ **[Live demo](https://marcinkurylo.github.io/ngx-onboarding-flow/)** — four
 independent tours over a realistic async app.
