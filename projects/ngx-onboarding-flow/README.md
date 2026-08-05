@@ -116,6 +116,10 @@ export class AppComponent {
 
 ### Key step options
 
+The ones you reach for most; the
+[full API reference](https://github.com/MarcinKurylo/ngx-onboarding-flow/blob/main/docs/api/)
+lists every option and export with its complete documentation.
+
 | Option | Effect |
 | --- | --- |
 | `targetSelector` | Element to highlight (omit for a centered step). |

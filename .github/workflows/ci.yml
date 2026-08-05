@@ -29,6 +29,38 @@ jobs:
       - name: Lint
         run: npx ng lint
 
+  # The API reference under docs/api is generated from the source's TSDoc and
+  # committed, so it renders on GitHub and so an API change shows up as a diff
+  # in review. That only works if it can't go stale — hence this check.
+  docs:
+    name: API docs up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Regenerate the API reference
+        run: npm run docs
+
+      - name: Fail if the committed output differs
+        run: |
+          # --porcelain, not `git diff`: this has to catch a *new* page appearing
+          # (untracked, invisible to git diff) as well as an edited or deleted one.
+          if [ -n "$(git status --porcelain -- docs/api)" ]; then
+            echo "::error::docs/api is out of date. Run 'npm run docs' and commit the result."
+            git status --short -- docs/api
+            echo '--- diff ---'
+            git diff -- docs/api
+            exit 1
+          fi
+          echo "API reference matches the source."
+
   unit:
     name: Unit & integration
     runs-on: ubuntu-latest

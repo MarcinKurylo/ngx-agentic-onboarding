@@ -1,0 +1,36 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "plugin": ["typedoc-plugin-markdown"],
+  "entryPoints": ["projects/ngx-onboarding-flow/src/public-api.ts"],
+  "tsconfig": "projects/ngx-onboarding-flow/tsconfig.doc.json",
+  "out": "docs/api",
+
+  // One page per module, i.e. one page total — this library has a single entry
+  // point and ~25 exports. A file-per-member tree would be worse to read on
+  // GitHub than a single scrollable page with an index at the top.
+  "outputFileStrategy": "modules",
+  "entryFileName": "README.md",
+  "readme": "none",
+  "hideBreadcrumbs": true,
+  "hidePageHeader": true,
+
+  // Pin source links to `main`, not to the commit being built. TypeDoc's default
+  // embeds the current SHA, which would rewrite every link on every commit —
+  // turning the committed output into permanent diff noise and making the
+  // freshness check in CI fail on any commit at all.
+  "sourceLinkTemplate": "https://github.com/MarcinKurylo/ngx-onboarding-flow/blob/main/{path}#L{line}",
+
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "sort": ["source-order"],
+  "githubPages": false,
+
+  // Anything undocumented in a *public* API is a gap worth failing on locally,
+  // but not worth breaking CI over — the CI job checks freshness, not coverage.
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  }
+}

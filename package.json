@@ -11,6 +11,7 @@
     "test:coverage": "ng test ngx-onboarding-flow --watch=false --code-coverage --karma-config karma.conf.js",
     "e2e": "playwright test",
     "lint": "ng lint",
+    "docs": "typedoc",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -49,6 +50,8 @@
     "karma-jasmine-html-reporter": "~2.1.0",
     "lint-staged": "^17.3.0",
     "ng-packagr": "^22.1.1",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.12.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.65.0"
   }
