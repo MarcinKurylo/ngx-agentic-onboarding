@@ -1,12 +1,18 @@
 name: Release
 
-# Tag-based release. Push a tag like `v0.1.0` and this runs the full CI suite
-# AND the Angular 16–22 compatibility matrix first, then publishes the library
-# to npm.
+# Tag-based release. **This publishes to npm for real.**
 #
-# Publishing is intentionally DISABLED for now — the `publish` job only builds
-# the package and prints what it *would* do. This whole file is a ready-to-arm
-# scaffold: flip the commented lines in `publish` when we decide to release.
+# Pushing a tag like `v0.1.0` runs, in order: verify-tag (the tag must match the
+# library's version in package.json), the full CI suite, the Angular 16–22
+# compatibility matrix, and only then `npm publish`. Any failure stops the chain
+# before anything is published.
+#
+# The release is `latest` on npm — a plain `npm i ngx-onboarding-flow` gets it.
+# For a soft launch instead, add `--tag next` to the publish command and promote
+# later with `npm dist-tag add ngx-onboarding-flow@<version> latest`.
+#
+# npm versions are immutable: a published version can never be replaced, and
+# even after `npm unpublish` (72h window) that number can't be reused.
 on:
   push:
     tags: ['v*']
@@ -44,15 +50,19 @@ jobs:
     needs: verify-tag
     uses: ./.github/workflows/compat-matrix.yml
 
-  # Gate 3 — publish (currently a no-op trace; see the disabled block).
+  # Gate 3 — publish. ARMED: reaching this job publishes to npm for real.
+  #
+  # Nothing here runs unless a `v*` tag is pushed, and only after verify-tag,
+  # the full CI suite and the Angular 16–22 matrix have all passed.
   publish:
-    name: Publish to npm (disabled)
+    name: Publish to npm
     needs: [verify-tag, ci, compat]
     runs-on: ubuntu-latest
-    # Provenance publishing additionally needs:
-    #   permissions:
-    #     contents: read
-    #     id-token: write
+    permissions:
+      contents: read
+      # Required for --provenance: npm exchanges this OIDC token for a signed
+      # attestation tying the published tarball to this workflow and commit.
+      id-token: write
     steps:
       - uses: actions/checkout@v7
 
@@ -60,27 +70,17 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          # registry-url: 'https://registry.npmjs.org'   # uncomment to publish
+          registry-url: 'https://registry.npmjs.org'
 
       - run: npm ci
 
       - name: Build library
         run: npx ng build ngx-onboarding-flow
 
-      - name: Publish (DISABLED — trace only)
+      - name: Publish to npm
         run: |
-          echo "Tag $GITHUB_REF_NAME passed CI + the Angular 16-22 matrix."
-          echo "npm publish is intentionally disabled until we choose to release."
-          echo "dist/ngx-onboarding-flow is built and ready to publish."
-          # === To arm a real release, do ALL of the following: ===
-          # 1. [DONE] npm automation token added as the NPM_TOKEN repo secret.
-          # 2. Uncomment `registry-url` on setup-node above.
-          # 3. Uncomment `id-token: write` in this job's permissions (for --provenance).
-          # 4. [ENFORCED] The tag/version match is checked by the verify-tag job,
-          #    which gates everything else — no need to remember it by hand.
-          # 5. Uncomment the two lines below:
-          #
-          # cd dist/ngx-onboarding-flow
-          # npm publish --access public --provenance
-        # env:
-        #   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          echo "Tag $GITHUB_REF_NAME passed verify-tag, CI and the Angular 16-22 matrix."
+          cd dist/ngx-onboarding-flow
+          npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
