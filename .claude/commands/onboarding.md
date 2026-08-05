@@ -8,20 +8,24 @@ skill. Follow that skill's procedure exactly.
 
 Flow to build (may be empty): $ARGUMENTS
 
-If no flow was described above, first read the app's routes and main screens,
-propose a sensible short first-run flow (welcome → primary action → payoff → done),
-and confirm it with the user before generating the config.
+If no flow was described above, read the app's routes and main screens and propose
+one before generating anything. Either way, follow the skill's own rules on what to
+ask about — the tour split and any new test coverage are the user's calls; ids,
+emits, providers and style wiring are yours to apply.
 
-Then:
+The skill is the source of truth for the procedure. Do not take shortcuts around
+it, and in particular:
 
-1. Map routes → `navigateToRoute`; find stable `id`/`data-*` anchors →
-   `targetSelector`; wire `bus.emit('…')` calls → `waitForEvent`; handle loaders
-   and conditional (`@if`) targets per the skill's rules.
-2. Output `onboarding.config.ts` (a typed `OnboardingConfig`) plus the
-   `provideOnboarding()` wiring — only what's missing.
-3. End with a **checklist** of edits the user must make in their own code
-   (ids to add, events to emit), kept separate from the generated config.
+- **Apply the wiring yourself.** Add the missing `id`/`data-*` anchors, the
+  `bus.emit('…')` calls, `provideOnboarding()` and the stylesheets. These are
+  mechanical edits — make them.
+- **Do not end with a checklist of edits you could have made.** The closing summary
+  is for what you changed in the user's code and the genuine decisions or
+  assumptions worth eyeballing (timing, conditionally-rendered targets) — never
+  homework.
+- **Close the loop**: build it, and run the existing test suite if there is one,
+  fixing anything your wiring broke.
 
 This is assisted authoring, not magic: flag every assumption, never invent a
-selector or event that isn't in the code, and say the result is a draft to run
-and eyeball (especially timing and conditionally-rendered targets).
+selector or event that isn't in the code, and say the result is a draft to run and
+eyeball.
