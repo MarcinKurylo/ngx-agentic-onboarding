@@ -6,37 +6,34 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.1.0] — 2026-08-01
+## [0.1.0] — 2026-08-05
 
-First public pre-release. A lightweight, config-driven and event-driven
-onboarding / product-tour engine for Angular, with a slimmed Driver.js overlay.
+First public release. A config-driven, event-driven onboarding / product-tour
+engine for Angular: describe a whole tour as one typed `OnboardingConfig` and an
+async engine coordinates the transitions, painting the overlay with a slimmed
+[Driver.js](https://driverjs.com). No tour code in your components.
+
+Supports **Angular 16.2 through 22** (`@angular/router` optional). The package
+ships only injectable services, which is what lets one build serve that range.
 
 ### Added
 
-- **Config-driven tours** — describe an entire tour as one typed
-  `OnboardingConfig`; no tour code in your components.
-- **Event-driven engine** (`OnboardingOrchestrator`) coordinating asynchronous
-  transitions: awaiting business events, driving the router, and waiting for
-  target elements to appear after loaders. Every stage is cancellable.
-- **Business event bus** (`OnboardingEventBus`) with typed lifecycle events.
-- **Driver.js renderer** behind an `OnboardingRenderer` seam, run in
-  single-step `highlight()` mode so the engine owns progression.
-- **Persistence** keyed by tour `id` + `version` (localStorage by default,
-  swappable via `ONBOARDING_STORAGE`); `startIfNotCompleted`, `autoStart`,
-  `hasCompleted`, `reset`.
-- **Theming** via a stable `ngx-onboarding` popover class, `--ngx-ob-*` CSS
-  variables (optional `theme.css`), and per-step `popoverClass`.
-- **Resilience** — `waitForEvent` timeouts (`waitForEventTimeoutMs` +
-  `onWaitTimeout: 'reveal' | 'advance' | 'skip'`) and target-loss recovery
-  (re-resolves a detached target, drops the overlay instead of ghosting over
-  empty space, closes cleanly if it never returns).
-- **Route-aware back navigation** — the engine remembers the route each step
-  was shown on and restores it when stepping back; redundant navigations are
-  skipped.
-- **Conditional steps** via an `enabled` predicate (sync/async), skipped
-  without running their hooks; fail-open on error.
-- Lifecycle events: `TourStarted/Completed/Skipped`,
-  `StepShown/Completed/Skipped/Waiting/WaitTimeout/TargetLost/Error`.
+- **`OnboardingOrchestrator`** — the async engine. Steps advance on your business
+  events (`waitForEvent`), it drives the router, and it waits for elements to
+  appear after loaders. Every stage is cancellable.
+- **`OnboardingEventBus`** — the bus your app emits domain events on, plus the
+  engine's own typed lifecycle events for analytics.
+- **Resilience** — `waitForEvent` timeouts with `onWaitTimeout`, target-loss
+  recovery, and route-aware back navigation.
+- **Persistence** keyed by tour `id` + `version`, swappable via
+  `ONBOARDING_STORAGE`; any number of independent tours per app.
+- **Conditional steps** — `enabled` predicates (sync or async) and `optional`
+  targets.
+- **Theming** — `--ngx-ob-*` CSS variables and a stable popover class, or replace
+  the popover UI entirely through the `ONBOARDING_RENDERER` seam.
+
+Full API and options: see the
+[library README](./projects/ngx-onboarding-flow/README.md).
 
 [Unreleased]: https://github.com/MarcinKurylo/ngx-onboarding-flow/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/MarcinKurylo/ngx-onboarding-flow/releases/tag/v0.1.0
