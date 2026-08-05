@@ -33,9 +33,35 @@ for elements to appear after loaders.
 Work in this order. Prefer the repo's real tools (routes file, template search)
 over guessing.
 
-1. **Establish the flow.** Use what the user described; if they didn't, propose a
-   sensible first-run flow (welcome → primary action → payoff/dashboard → done).
-   Keep tours short (4–8 steps). One `OnboardingConfig` per distinct flow.
+**Read the stack before you apply any version-specific rule.** Open `package.json`
+and note the `@angular/core` and `@angular/cdk` versions. This skill supports
+Angular 16.2–22, and guidance below that names a version (the `@defer` and CDK
+top-layer rules, both in step 5) applies **only** above that floor. On an older stack the
+"fix" is usually an import that doesn't exist yet — a build failure, not a
+no-op. Verify, then decide; never apply a version-gated rule from memory.
+
+**When to ask vs. when to just do it.** Ask about **scope** — how many tours, what
+the split is, whether to touch the test suite. Never ask about **mechanics** — ids,
+emits, providers, style wiring are yours to apply (step 8). A question that
+starts "should I add an id to…" is a task you should have done.
+
+1. **Establish the flow — and confirm the split before writing.** Use what the user
+   described; if they didn't, propose a sensible first-run flow (welcome → primary
+   action → payoff/dashboard → done). Keep tours short (4–8 steps). One
+   `OnboardingConfig` per distinct flow.
+   - **If the app has more than one distinct flow — or the user asked for
+     several tours — propose the split and get their answer before writing any
+     config.** List the candidate tours, one line each (name + what it walks +
+     roughly how many steps), and let them cut, merge or reorder. The split decides
+     every downstream choice: anchors, which events you wire, how many triggers the
+     UI needs. Changing it costs one message now and a rewrite later.
+   - **Split by screen or job, not by user segment.** "Getting started", "the
+     detail screen", "reporting" are separate tours. "Free users" vs. "paid users"
+     is *not* — that's a branch **within** one tour, expressed with `enabled` (step
+     6). Splitting on segments duplicates every shared step.
+   - A flow that lives on a route the user reaches on their own terms (a record's
+     detail page, `/thing/:id`) is its own tour, because its trigger has to resolve
+     that route before starting — see step 7.
 
 2. **Map routes.** Read the routing config (e.g. `app.routes.ts`) to learn which
    component owns each screen. A step that lives on a different route than the one
@@ -107,20 +133,49 @@ over guessing.
      dialog *will be*, not where it is. `delayMs` runs *after* the target resolves and
      *before* the cutout is measured, which is exactly this gap. Treat the value as a
      tunable guess and say so to the user.
-   - **Highlighting *inside* a CDK / Material overlay needs it out of the top layer.**
-     Since **CDK 20.1**, overlays (`MatDialog`/`cdkDialog`, `mat-menu`, `mat-select`,
+   - **A target behind `@defer` never appears on its own — trigger it yourself.**
+     (Angular 17+.) `@defer (on viewport)` renders its `@placeholder`, and the real
+     content only mounts once that placeholder intersects the viewport. Aiming a step
+     straight at an element inside the block **deadlocks silently**: the engine polls
+     for a target that nothing will ever render, because Driver.js only scrolls
+     *after* it resolves the target. It fails as a timeout, so it reads like a wrong
+     selector — check the template for `@defer` before you go hunting. Give the step a
+     `beforeStep` that provokes the trigger, then let the poll do its job:
+
+     ```ts
+     { id: 'yearly', targetSelector: '#yearly-heatmap',
+       // #yearly-heatmap is inside @defer (on viewport) — scroll the placeholder
+       // into view so the block renders, then the engine polls for the real target.
+       beforeStep: () => { document.querySelector('#placeholder-id')
+                             ?.scrollIntoView({ block: 'center' }); },
+       waitForSelectorTimeoutMs: 8000 }
+     ```
+
+     Use `?.` — the placeholder is gone once the block has rendered, e.g. if the user
+     already scrolled past it. Budget generously: the trigger, `@loading (minimum …)`
+     and the fetch all stack up. Same shape for the other triggers — `on interaction`
+     / `on hover` need the real event dispatched on the placeholder, `on timer` just
+     needs a longer `waitForSelectorTimeoutMs`. Anchor the `@placeholder` with its own
+     `id` if it hasn't got one.
+   - **On CDK ≥ 20.1 only: highlighting *inside* a CDK / Material overlay needs it
+     out of the top layer.** Check `@angular/cdk` in `package.json` first. **Below
+     20.1 there is nothing to do** — those overlays stack by normal `z-index`, the
+     Driver.js overlay already paints above them, and `OVERLAY_DEFAULT_CONFIG` does
+     not exist yet, so importing it is a **build failure**, not a harmless no-op.
+
+     From 20.1 on, overlays (`MatDialog`/`cdkDialog`, `mat-menu`, `mat-select`,
      autocomplete) render in the browser's **top layer** via the native Popover API
      (`popover="manual"`), which paints above all normal content **regardless of
-     z-index** — including the tour's Driver.js overlay. So a step targeting an element
-     *inside* such an overlay looks un-highlighted and its popover is unclickable (the
-     CDK backdrop covers it). This is orthogonal to `delayMs` (timing) — it's stacking,
-     and **no z-index tweak fixes it.** When any step targets an element inside a CDK
-     overlay, add `{ provide: OVERLAY_DEFAULT_CONFIG, useValue: { usePopover: false } }`
-     (from `@angular/cdk/overlay`) to the app providers — it's the app-wide lever, and
-     `Dialog`/`MatDialog` don't forward a per-call `usePopover`. Make the edit, but
-     **call it out in the summary**: it changes CDK's overlay behaviour app-wide. (A
-     standalone connected overlay can instead be scoped with
-     `[cdkConnectedOverlayUsePopover]="false"`.)
+     z-index** — including the tour's Driver.js overlay. A step targeting an element
+     *inside* such an overlay then looks un-highlighted and its popover is unclickable
+     (the CDK backdrop covers it). This is orthogonal to `delayMs` (timing) — it's
+     stacking, and no z-index tweak fixes it. On that stack, when a step targets an
+     element inside a CDK overlay, add `{ provide: OVERLAY_DEFAULT_CONFIG, useValue:
+     { usePopover: false } }` (from `@angular/cdk/overlay`) to the app providers — it's
+     the app-wide lever, and `Dialog`/`MatDialog` don't forward a per-call
+     `usePopover`. Make that edit, but **call it out in the summary**: it changes CDK's
+     overlay behaviour app-wide. (A standalone connected overlay can instead be scoped
+     with `[cdkConnectedOverlayUsePopover]="false"`.)
 
    Bump `waitForSelectorTimeoutMs` on a step if a request is genuinely slow.
 
@@ -148,10 +203,22 @@ over guessing.
    (a) what you changed in the user's code and (b) genuine decisions/assumptions to
    eyeball — never a to-do list of edits you could have made.
 
-9. **Build it.** Run the app's build (`ng build` / `npm run build`) and fix what it
-   flags. It won't prove events fire, but it catches import/typo breakage — closing
-   the loop is part of the job, not a hope. Then tell the user what to click to see
-   it live.
+9. **Build it, then check you didn't break the suite.** Run the app's build
+   (`ng build` / `npm run build`) and fix what it flags. It won't prove events fire,
+   but it catches import/typo breakage — closing the loop is part of the job, not a
+   hope. Then tell the user what to click to see it live.
+   - **Run the existing tests if the repo has them**, and fix anything *your* wiring
+     broke. This is not optional and not a question: `provideOnboarding()` and an
+     injected `OnboardingEventBus` add DI dependencies to components that specs
+     construct, so a green suite can go red purely from your edits. You broke it, you
+     fix it.
+   - **New tests for the onboarding are the user's call — ask, don't assume.** A tour
+     is worth covering (a renamed id or a dropped emit breaks it silently, and
+     nothing else in the build will notice), but it's a scope decision: it means new
+     spec files and a testing approach they may already have opinions about. Offer it
+     concretely — name what you'd assert (config shape, that each `targetSelector`
+     resolves in a rendered fixture, that each `waitForEvent` has a matching emit) —
+     and write them only if they say yes.
 
 ## The schema (authoritative)
 
@@ -313,7 +380,12 @@ mechanical edits, which you should already have made.
 - Advance on the event; keep a generous `reveal` timeout only as a safety net,
   never as pacing. Every cross-route step gets `navigateToRoute`. Centered steps
   get `placement: 'center'` and no selector.
-- Close the loop: build it (step 9) and give the user a way to replay the tour;
-  never rely on a one-shot auto-start you can't trigger again.
+- Close the loop: build it, run the existing suite and fix what your wiring broke
+  (step 9), and give the user a way to replay the tour; never rely on a one-shot
+  auto-start you can't trigger again.
+- Ask about scope, decide about mechanics. The tour split (step 1) and new test
+  coverage (step 9) are the user's calls; ids, emits and providers are yours.
+- Check `@angular/core` and `@angular/cdk` versions before applying any rule that
+  names one. The wrong version-gated "fix" is a build failure, not a no-op.
 - State plainly that the result is a draft to run and eyeball, especially for
   timing and conditionally-rendered targets.
