@@ -31,10 +31,23 @@ anything.
 npm i ngx-onboarding-flow driver.js
 ```
 
+### Optional: let Claude write the config
+
 Not keen on hand-picking selectors? A companion **Claude Code skill**,
-[`onboarding-author`](https://github.com/MarcinKurylo/ngx-onboarding-flow#you-dont-have-to-write-that-config-by-hand),
-reads your app — routes, template ids, event-bus emissions — and writes the config
-and its wiring for you, flagging the assumptions it made.
+`onboarding-author`, reads your app — routes, template ids, event-bus emissions —
+and writes the config and its wiring for you, flagging the assumptions it made.
+
+It is **not part of this npm package** — Claude Code loads skills from plugins, not
+from `node_modules` — so it installs separately, inside Claude Code:
+
+```
+/plugin marketplace add MarcinKurylo/ngx-onboarding-flow
+/plugin install ngx-onboarding-flow@marcinkurylo
+```
+
+Then ask for a tour ("add onboarding to my app"), or run `/onboarding`. Details in
+the [project README](https://github.com/MarcinKurylo/ngx-onboarding-flow#you-dont-have-to-write-that-config-by-hand).
+The library itself needs none of this.
 
 ## Compatibility
 
