@@ -1,0 +1,6 @@
+# The root .gitignore anchors its rules to the repo root, so this directory
+# needs its own.
+node_modules/
+dist/
+out-tsc/
+.angular/

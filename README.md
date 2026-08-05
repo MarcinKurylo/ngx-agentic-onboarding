@@ -43,6 +43,9 @@ npm i ngx-onboarding-flow driver.js
 
 ▶ **[Live demo](https://marcinkurylo.github.io/ngx-onboarding-flow/)** — four
 independent tours over a realistic async app (loaders, a modal, routing and CDK overlays).
+✏️ **[Edit it on StackBlitz](https://stackblitz.com/github/MarcinKurylo/ngx-onboarding-flow/tree/main/examples/stackblitz)**
+— a tiny app where the tour is the only moving part. Change a step, watch it
+re-run. No account, nothing to install.
 📦 **[Package on npm](https://www.npmjs.com/package/ngx-onboarding-flow)** —
 published from CI with a signed provenance attestation.
 
@@ -108,6 +111,7 @@ This is an Angular CLI workspace:
 | `projects/ngx-onboarding-flow` | The publishable library. |
 | `projects/demo` | A realistic demo app (loaders, HTTP, modal, dropdown, routing, CDK overlays) with four independent tours. |
 | `e2e` | Playwright end-to-end tests driving the demo. |
+| `examples/stackblitz` | The minimal runnable example behind the StackBlitz link. Consumes the library from npm, not from `dist/`. |
 | `.claude-plugin` / `plugins` | Claude Code marketplace catalog + the `onboarding-author` skill packaged as a plugin. |
 | `.claude/skills/onboarding-author` | The skill itself (canonical copy; the plugin symlinks it). |
 
