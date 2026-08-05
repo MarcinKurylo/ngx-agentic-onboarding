@@ -1,14 +1,14 @@
 {
-  "name": "ngx-agentic-onboarding",
+  "name": "ngx-onboarding-flow",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve demo",
-    "build": "ng build ngx-agentic-onboarding",
+    "build": "ng build ngx-onboarding-flow",
     "build:demo": "ng build demo",
-    "watch": "ng build ngx-agentic-onboarding --watch --configuration development",
-    "test": "ng test ngx-agentic-onboarding --watch=false",
-    "test:coverage": "ng test ngx-agentic-onboarding --watch=false --code-coverage --karma-config karma.conf.js",
+    "watch": "ng build ngx-onboarding-flow --watch --configuration development",
+    "test": "ng test ngx-onboarding-flow --watch=false",
+    "test:coverage": "ng test ngx-onboarding-flow --watch=false --code-coverage --karma-config karma.conf.js",
     "e2e": "playwright test",
     "lint": "ng lint",
     "prepare": "husky"

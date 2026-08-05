@@ -1,9 +1,9 @@
 /*
- * ngx-agentic-onboarding — optional theme.
+ * ngx-onboarding-flow — optional theme.
  *
  * Import it AFTER driver.js's stylesheet to get a themeable default look:
  *   @import 'driver.js/dist/driver.css';
- *   @import 'ngx-agentic-onboarding/styles/theme.css';
+ *   @import 'ngx-onboarding-flow/styles/theme.css';
  *
  * Every rule consumes a `--ngx-ob-*` CSS variable with a built-in fallback, so
  * this file IS the default and you customise it by setting variables anywhere

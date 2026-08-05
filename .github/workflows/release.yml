@@ -44,21 +44,21 @@ jobs:
       - run: npm ci
 
       - name: Build library
-        run: npx ng build ngx-agentic-onboarding
+        run: npx ng build ngx-onboarding-flow
 
       - name: Publish (DISABLED — trace only)
         run: |
           echo "Tag $GITHUB_REF_NAME passed CI + the Angular 16-22 matrix."
           echo "npm publish is intentionally disabled until we choose to release."
-          echo "dist/ngx-agentic-onboarding is built and ready to publish."
+          echo "dist/ngx-onboarding-flow is built and ready to publish."
           # === To arm a real release, do ALL of the following: ===
           # 1. Create an npm automation token; add it as the NPM_TOKEN repo secret.
           # 2. Uncomment `registry-url` on setup-node above.
           # 3. Uncomment `id-token: write` in this job's permissions (for --provenance).
-          # 4. Bump projects/ngx-agentic-onboarding/package.json `version` to match the tag.
+          # 4. Bump projects/ngx-onboarding-flow/package.json `version` to match the tag.
           # 5. Uncomment the two lines below:
           #
-          # cd dist/ngx-agentic-onboarding
+          # cd dist/ngx-onboarding-flow
           # npm publish --access public --provenance
         # env:
         #   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { OnboardingEventBus } from 'ngx-agentic-onboarding';
+import { OnboardingEventBus } from 'ngx-onboarding-flow';
 
 import { ApiService, Project, ProjectStatus } from './api.service';
 

@@ -167,7 +167,7 @@ export class OnboardingOrchestrator {
       this.load(config);
     }
     if (!this.config || this.config.steps.length === 0) {
-      console.warn('[ngx-agentic-onboarding] start() called with no steps.');
+      console.warn('[ngx-onboarding-flow] start() called with no steps.');
       return;
     }
     this.bus.emit(OnboardingLifecycleEvent.TourStarted, {
@@ -475,7 +475,7 @@ export class OnboardingOrchestrator {
         id: step?.id,
         error: error instanceof Error ? error.message : String(error),
       });
-      console.error('[ngx-agentic-onboarding] step transition failed:', error);
+      console.error('[ngx-onboarding-flow] step transition failed:', error);
     }
   }
 
@@ -523,7 +523,7 @@ export class OnboardingOrchestrator {
       return result !== false;
     } catch (error) {
       console.warn(
-        `[ngx-agentic-onboarding] enabled() for step "${step.id}" threw; ` +
+        `[ngx-onboarding-flow] enabled() for step "${step.id}" threw; ` +
           'showing the step.',
         error,
       );
@@ -644,7 +644,7 @@ export class OnboardingOrchestrator {
   private async navigate(route: string): Promise<void> {
     if (!this.router) {
       console.warn(
-        `[ngx-agentic-onboarding] navigateToRoute="${route}" ignored: ` +
+        `[ngx-onboarding-flow] navigateToRoute="${route}" ignored: ` +
           'no Router available. Did you provide the router in this app?',
       );
       return;
@@ -653,7 +653,7 @@ export class OnboardingOrchestrator {
       await this.router.navigateByUrl(route);
     } catch (error) {
       console.warn(
-        `[ngx-agentic-onboarding] navigation to "${route}" failed:`,
+        `[ngx-onboarding-flow] navigation to "${route}" failed:`,
         error,
       );
     }
@@ -724,7 +724,7 @@ export class OnboardingOrchestrator {
     try {
       await hook({ step: this.config!.steps[index], index, total: this.totalSteps() });
     } catch (error) {
-      console.warn('[ngx-agentic-onboarding] lifecycle hook threw:', error);
+      console.warn('[ngx-onboarding-flow] lifecycle hook threw:', error);
     }
   }
 
@@ -772,7 +772,7 @@ export class OnboardingOrchestrator {
     try {
       this.renderer.show(step, target, controls);
     } catch (error) {
-      console.error('[ngx-agentic-onboarding] renderer.show() failed:', error);
+      console.error('[ngx-onboarding-flow] renderer.show() failed:', error);
     }
   }
 
@@ -781,7 +781,7 @@ export class OnboardingOrchestrator {
     try {
       this.renderer?.hide();
     } catch (error) {
-      console.error('[ngx-agentic-onboarding] renderer.hide() failed:', error);
+      console.error('[ngx-onboarding-flow] renderer.hide() failed:', error);
     }
   }
 
@@ -825,7 +825,7 @@ export class OnboardingOrchestrator {
       error: `Target "${step.targetSelector}" not found within timeout.`,
     });
     console.warn(
-      `[ngx-agentic-onboarding] step "${step.id}" (#${index}) target ` +
+      `[ngx-onboarding-flow] step "${step.id}" (#${index}) target ` +
         `"${step.targetSelector}" never appeared.`,
     );
   }
@@ -903,7 +903,7 @@ export class OnboardingOrchestrator {
       error: `Target "${step.targetSelector}" disappeared and did not return.`,
     });
     console.warn(
-      `[ngx-agentic-onboarding] step "${step.id}" target ` +
+      `[ngx-onboarding-flow] step "${step.id}" target ` +
         `"${step.targetSelector}" was removed and never came back; closing.`,
     );
     this.teardown('skipped');

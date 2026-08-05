@@ -8,9 +8,9 @@
   "description": "Marcin Kuryło's Claude Code plugins.",
   "plugins": [
     {
-      "name": "ngx-agentic-onboarding",
+      "name": "ngx-onboarding-flow",
       "source": "./plugins/onboarding-author",
-      "description": "Author ngx-agentic-onboarding product tours (a typed OnboardingConfig) from an Angular app's routes, template ids, and event-bus emissions."
+      "description": "Author ngx-onboarding-flow product tours (a typed OnboardingConfig) from an Angular app's routes, template ids, and event-bus emissions."
     }
   ]
 }

@@ -10,8 +10,8 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "ngx-agentic-onboarding": [
-        "./dist/ngx-agentic-onboarding"
+      "ngx-onboarding-flow": [
+        "./dist/ngx-onboarding-flow"
       ]
     },
     "skipLibCheck": true,

@@ -1,5 +1,5 @@
 /*
- * Public API Surface of ngx-agentic-onboarding
+ * Public API Surface of ngx-onboarding-flow
  */
 
 // Models & types

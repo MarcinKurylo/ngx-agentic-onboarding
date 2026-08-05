@@ -26,7 +26,7 @@ export default defineConfig({
   },
   projects: [{ name: 'chrome', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `npx ng build ngx-agentic-onboarding && npx ng serve demo --port ${PORT}`,
+    command: `npx ng build ngx-onboarding-flow && npx ng serve demo --port ${PORT}`,
     url: baseURL,
     reuseExistingServer: !isCI,
     timeout: 180_000,

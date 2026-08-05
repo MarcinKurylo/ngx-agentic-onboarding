@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **ngx-agentic-onboarding** are documented here. The
+All notable changes to **ngx-onboarding-flow** are documented here. The
 format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -38,5 +38,5 @@ onboarding / product-tour engine for Angular, with a slimmed Driver.js overlay.
 - Lifecycle events: `TourStarted/Completed/Skipped`,
   `StepShown/Completed/Skipped/Waiting/WaitTimeout/TargetLost/Error`.
 
-[Unreleased]: https://github.com/MarcinKurylo/ngx-agentic-onboarding/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/MarcinKurylo/ngx-agentic-onboarding/releases/tag/v0.1.0
+[Unreleased]: https://github.com/MarcinKurylo/ngx-onboarding-flow/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/MarcinKurylo/ngx-onboarding-flow/releases/tag/v0.1.0

@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
-  "dest": "../../dist/ngx-agentic-onboarding",
+  "dest": "../../dist/ngx-onboarding-flow",
   "allowedNonPeerDependencies": ["driver.js"],
   "assets": ["./styles/theme.css", "./LICENSE"],
   "lib": {

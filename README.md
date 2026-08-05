@@ -1,8 +1,8 @@
-# ngx-agentic-onboarding
+# ngx-onboarding-flow
 
-[![CI](https://github.com/MarcinKurylo/ngx-agentic-onboarding/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcinKurylo/ngx-agentic-onboarding/actions/workflows/ci.yml)
+[![CI](https://github.com/MarcinKurylo/ngx-onboarding-flow/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcinKurylo/ngx-onboarding-flow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Live demo](https://img.shields.io/badge/demo-live-6f42c1)](https://marcinkurylo.github.io/ngx-agentic-onboarding/)
+[![Live demo](https://img.shields.io/badge/demo-live-6f42c1)](https://marcinkurylo.github.io/ngx-onboarding-flow/)
 
 Lightweight, **config-driven** and **event-driven** onboarding / product-tour
 engine for Angular 16.2+. Describe an entire tour as a single typed object; an
@@ -11,7 +11,7 @@ the router, and waiting for elements to appear after loaders — and paints the
 overlay with a slimmed [Driver.js](https://driverjs.com). **No tour code in your
 components.**
 
-▶ **[Live demo](https://marcinkurylo.github.io/ngx-agentic-onboarding/)** — four
+▶ **[Live demo](https://marcinkurylo.github.io/ngx-onboarding-flow/)** — four
 independent tours over a realistic async app (loaders, a modal, routing and CDK overlays).
 
 ```ts
@@ -42,7 +42,7 @@ export const tour: OnboardingConfig = {
 
 The full API, options and theming guide live in the library README:
 
-➡️ **[projects/ngx-agentic-onboarding/README.md](./projects/ngx-agentic-onboarding/README.md)**
+➡️ **[projects/ngx-onboarding-flow/README.md](./projects/ngx-onboarding-flow/README.md)**
 
 ## Onboarding-author skill (Claude Code plugin)
 
@@ -52,12 +52,12 @@ event-bus emissions instead of hand-written selectors — is packaged as a plugi
 can install into any project:
 
 ```
-/plugin marketplace add MarcinKurylo/ngx-agentic-onboarding
-/plugin install ngx-agentic-onboarding@marcinkurylo
+/plugin marketplace add MarcinKurylo/ngx-onboarding-flow
+/plugin install ngx-onboarding-flow@marcinkurylo
 ```
 
 Then just ask for a tour ("add onboarding to my app") and Claude runs the skill, or
-invoke it explicitly as `/ngx-agentic-onboarding:onboarding-author`. No pinned
+invoke it explicitly as `/ngx-onboarding-flow:onboarding-author`. No pinned
 `version`, so the plugin tracks `main` — `/plugin update` pulls the latest skill.
 
 <details><summary>Layout &amp; validation</summary>
@@ -76,7 +76,7 @@ This is an Angular CLI workspace:
 
 | Path | What |
 | --- | --- |
-| `projects/ngx-agentic-onboarding` | The publishable library. |
+| `projects/ngx-onboarding-flow` | The publishable library. |
 | `projects/demo` | A realistic demo app (loaders, HTTP, modal, dropdown, routing, CDK overlays) with four independent tours. |
 | `e2e` | Playwright end-to-end tests driving the demo. |
 | `.claude-plugin` / `plugins` | Claude Code marketplace catalog + the `onboarding-author` skill packaged as a plugin. |
@@ -88,7 +88,7 @@ This is an Angular CLI workspace:
 npm install
 
 npm start            # serve the demo app -> http://localhost:4200
-npm run build        # build the library -> dist/ngx-agentic-onboarding
+npm run build        # build the library -> dist/ngx-onboarding-flow
 npm run build:demo   # build the demo app
 
 # unit + integration tests (Karma/Jasmine) — set CHROME_BIN to your Chrome

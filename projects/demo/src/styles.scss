@@ -11,10 +11,10 @@
 /*
  * Optional onboarding theme (default look via CSS variables). A published app
  * would import it by package path:
- *   @import 'ngx-agentic-onboarding/styles/theme.css';
+ *   @import 'ngx-onboarding-flow/styles/theme.css';
  * The demo consumes the library from dist/, so it points there directly.
  */
-@import '../../../dist/ngx-agentic-onboarding/styles/theme.css';
+@import '../../../dist/ngx-onboarding-flow/styles/theme.css';
 
 /* --- Customisation: just override the variables in your own SCSS. --- */
 :root {

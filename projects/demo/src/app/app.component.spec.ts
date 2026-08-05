@@ -1,7 +1,7 @@
 /// <reference types="jasmine" />
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { OnboardingOrchestrator } from 'ngx-agentic-onboarding';
+import { OnboardingOrchestrator } from 'ngx-onboarding-flow';
 
 import { AppComponent } from './app.component';
 import { appOnboarding } from './onboarding.config';

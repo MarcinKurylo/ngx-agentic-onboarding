@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
-import { OnboardingEventBus } from 'ngx-agentic-onboarding';
+import { OnboardingEventBus } from 'ngx-onboarding-flow';
 
 import { AccountService } from './account.service';
 import { ApiService, Stats, StatsRange } from './api.service';
