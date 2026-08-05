@@ -4,15 +4,20 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Live demo](https://img.shields.io/badge/demo-live-6f42c1)](https://marcinkurylo.github.io/ngx-onboarding-flow/)
 
-Lightweight, **config-driven** and **event-driven** onboarding / product-tour
-engine for Angular 16.2+. Describe an entire tour as a single typed object; an
-async engine coordinates the transitions — waiting for business events, driving
-the router, and waiting for elements to appear after loaders — and paints the
-overlay with a slimmed [Driver.js](https://driverjs.com). **No tour code in your
-components.**
+**Describe the whole tour once, as data. The engine handles the async.**
 
-▶ **[Live demo](https://marcinkurylo.github.io/ngx-onboarding-flow/)** — four
-independent tours over a realistic async app (loaders, a modal, routing and CDK overlays).
+A product tour is easy to fake and hard to ship. The fake one walks a static page,
+selector by selector. The real one has to wait for a list to finish loading, follow
+the user into a modal, change route halfway through, and pause until they actually
+click *Save*. That's the point where tour logic starts leaking into the app: a flag
+in a service, a subscription in a component, an `if (tour.step === 4)` in a template
+that nobody dares to delete a year later.
+
+`ngx-onboarding-flow` keeps it out. The entire flow is one typed `OnboardingConfig`,
+and an async engine coordinates the transitions — waiting for your business events,
+driving the router, waiting for elements to appear after loaders, re-anchoring when
+a re-render tears the highlighted element away. Your components just emit the domain
+events they were emitting anyway. **No tour code in your components.**
 
 ```ts
 export const tour: OnboardingConfig = {
@@ -25,31 +30,22 @@ export const tour: OnboardingConfig = {
 };
 ```
 
-## Highlights
+That object *is* the tour. Angular 16.2 through 22; the overlay is painted with a
+slimmed [Driver.js](https://driverjs.com).
 
-- **One declarative config** — the whole flow lives in data, not components.
-- **Event-driven** — steps pause until your app emits a domain event on the bus.
-- **Async-aware** — routing, post-loader elements and lifecycle hooks are awaited
-  and cancellable.
-- **Resilient** — `waitForEvent` timeouts, target-loss recovery (no ghost
-  highlights), route-aware back navigation.
-- **Conditional steps** — per-user/context `enabled` predicates (sync or async).
-- **Persistence** per tour `id` + `version`; multiple independent tours per app.
-- **Themeable** — stable popover class + `--ngx-ob-*` CSS variables.
-- **SSR-safe** and framework-idiomatic (Angular Signals).
+▶ **[Live demo](https://marcinkurylo.github.io/ngx-onboarding-flow/)** — four
+independent tours over a realistic async app (loaders, a modal, routing and CDK overlays).
 
-## Documentation
+## You don't have to write that config by hand
 
-The full API, options and theming guide live in the library README:
+A tour config is only as good as its selectors, and hand-picking them means grepping
+templates for ids that may not exist yet. So the library ships with a companion
+**Claude Code skill**, `onboarding-author`: it reads the app itself — routes, template
+ids, event-bus emissions — proposes a flow, writes the typed config and wires up
+`provideOnboarding` for you, flagging every assumption it had to make.
 
-➡️ **[projects/ngx-onboarding-flow/README.md](./projects/ngx-onboarding-flow/README.md)**
-
-## Onboarding-author skill (Claude Code plugin)
-
-This repo doubles as a **Claude Code marketplace**. The companion `onboarding-author`
-skill — it generates a tour from an Angular app's routes, template ids and
-event-bus emissions instead of hand-written selectors — is packaged as a plugin you
-can install into any project:
+This repo doubles as a **Claude Code marketplace**, so you can install the skill into
+any project:
 
 ```
 /plugin marketplace add MarcinKurylo/ngx-onboarding-flow
@@ -69,6 +65,26 @@ invoke it explicitly as `/ngx-onboarding-flow:onboarding-author`. No pinned
   plugin cache on install.
 - Validate before publishing: `/plugin validate ./plugins/onboarding-author`.
 </details>
+
+## What the engine handles for you
+
+- **One declarative config** — the whole flow lives in data, not components.
+- **Event-driven** — steps pause until your app emits a domain event on the bus.
+- **Async-aware** — routing, post-loader elements and lifecycle hooks are awaited
+  and cancellable.
+- **Resilient** — `waitForEvent` timeouts, target-loss recovery (no ghost
+  highlights), route-aware back navigation.
+- **Conditional steps** — per-user/context `enabled` predicates (sync or async).
+- **Persistence** per tour `id` + `version`; multiple independent tours per app.
+- **Themeable** — stable popover class + `--ngx-ob-*` CSS variables, or swap the
+  whole popover UI via the `ONBOARDING_RENDERER` seam.
+- **SSR-safe** and framework-idiomatic (Angular Signals).
+
+## Documentation
+
+The full API, options and theming guide live in the library README:
+
+➡️ **[projects/ngx-onboarding-flow/README.md](./projects/ngx-onboarding-flow/README.md)**
 
 ## Repository layout
 

@@ -1,11 +1,15 @@
 # ngx-onboarding-flow
 
-Lightweight, **config-driven** and **event-driven** onboarding / product-tour
-engine for Angular 16.2+. Define the whole tour in one typed object; the engine
-coordinates asynchronous transitions — waiting for business events, driving the
-router, and waiting for elements to appear after loaders — and paints the
-overlay with a slimmed [Driver.js](https://driverjs.com). No tour code in your
-components.
+**Describe the whole tour once, as data. The engine handles the async.**
+
+A product tour is easy to fake and hard to ship. The real one waits for a list to
+finish loading, follows the user into a modal, changes route halfway through, and
+pauses until they actually click *Save* — which is how tour logic ends up smeared
+across components. This library keeps it out: the entire flow is one typed
+`OnboardingConfig`, and an async engine coordinates the transitions — waiting for
+your business events, driving the router, waiting for elements to appear after
+loaders — then paints the overlay with a slimmed [Driver.js](https://driverjs.com).
+Config-driven, event-driven, Angular 16.2+. **No tour code in your components.**
 
 ▶ **[Live demo](https://marcinkurylo.github.io/ngx-onboarding-flow/)** — four
 independent tours over a realistic async app.
@@ -15,6 +19,11 @@ independent tours over a realistic async app.
 ```bash
 npm i ngx-onboarding-flow driver.js
 ```
+
+Not keen on hand-picking selectors? A companion **Claude Code skill**,
+[`onboarding-author`](https://github.com/MarcinKurylo/ngx-onboarding-flow#you-dont-have-to-write-that-config-by-hand),
+reads your app — routes, template ids, event-bus emissions — and writes the config
+and its wiring for you, flagging the assumptions it made.
 
 ## Compatibility
 
@@ -37,7 +46,7 @@ Caveats to know:
   are functionally present and the engine uses them internally only, but 16.x users
   inherit that preview status. From **17+** signals are stable.
 - CI builds and runs the unit/integration + e2e suites on the workspace's Angular
-  (21.x). A separate, on-demand consumer-build matrix compiles a fresh app against
+  (22.x). A separate, on-demand consumer-build matrix compiles a fresh app against
   every supported major (16.2–22) to keep the range CI-verified rather than merely
   declared.
 
