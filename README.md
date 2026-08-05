@@ -100,11 +100,17 @@ This is an Angular CLI workspace:
 
 ## Develop
 
+**Build the library first.** `tsconfig.json` maps the package name to
+`dist/ngx-onboarding-flow`, so the demo and the test suite consume the *built*
+library exactly as a real consumer would. On a fresh clone — and after any change
+to `projects/ngx-onboarding-flow` — run `npm run build` before serving or testing,
+or resolution fails.
+
 ```bash
 npm install
+npm run build        # build the library -> dist/ngx-onboarding-flow  (do this first)
 
 npm start            # serve the demo app -> http://localhost:4200
-npm run build        # build the library -> dist/ngx-onboarding-flow
 npm run build:demo   # build the demo app
 
 # unit + integration tests (Karma/Jasmine) — set CHROME_BIN to your Chrome
@@ -113,6 +119,9 @@ npm run test:coverage           # same, with coverage thresholds (as in CI)
 
 npm run e2e          # end-to-end tests (Playwright, uses system Chrome)
 ```
+
+Setup, workflow and the repo's few quirks are written up in
+**[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 
 ## License
 

@@ -1,0 +1,42 @@
+version: 2
+
+updates:
+  # npm — the workspace is a single package-lock at the root.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Angular ships its packages in lockstep — never split them across PRs,
+      # or the workspace ends up with mismatched majors that don't build.
+      # This includes majors on purpose: a jump past the peer ceiling
+      # (currently <23.0.0) is a decision to make, and one PR is where to
+      # make it, not seven.
+      angular:
+        patterns:
+          - '@angular/*'
+          - '@angular-devkit/*'
+          - 'angular-eslint'
+          - 'ng-packagr'
+      # Everything else that only affects the repo, not the published package.
+      tooling:
+        dependency-type: development
+        exclude-patterns:
+          - '@angular/*'
+          - '@angular-devkit/*'
+          - 'angular-eslint'
+          - 'ng-packagr'
+
+  # Workflow actions — currently pinned inconsistently across files
+  # (checkout@v4 in pages.yml vs @v7 elsewhere); this keeps them level.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns:
+          - '*'

@@ -123,7 +123,17 @@ export class AppComponent {
 | `navigateToRoute` | Navigate, then wait for the target to appear. |
 | `delayMs` / `waitForSelectorTimeoutMs` | Timing for async DOM. |
 | `beforeStep` / `afterStep` | Awaited lifecycle hooks. |
+| `optional` | Silently skip the step when its target never resolves, instead of erroring. |
+| `showNext` / `showPrev` | Hide a navigation button (`showNext` defaults to false while `waitForEvent` is pending). |
+| `allowSkip` | Let the user close the tour from this step. Default true. |
+| `allowHtml` | Render `title`/`content` as raw HTML instead of escaped text — trusted strings only. |
 | `popoverClass` | Extra CSS class for theming this step. |
+| `nextLabel` / `prevLabel` / `doneLabel` | Per-step button text, overriding the global labels. |
+
+`optional` is the counterpart to `enabled`: `enabled` decides *before* the step
+whether it applies at all, while `optional` forgives a target that turns out not to
+be in the DOM — useful when a step points at UI the user may or may not have
+unlocked earlier in the same tour.
 
 ## Conditional steps
 
@@ -215,8 +225,12 @@ to that one panel with `[cdkConnectedOverlayUsePopover]="false"`.
 
 ## Persistence
 
-Completing or dismissing a tour is remembered (localStorage, keyed by
-`id`+`version`) so it won't reappear:
+**Completing** a tour is remembered (localStorage, keyed by `id`+`version`) so it
+won't reappear. **Dismissing** it — Escape or the close button — deliberately does
+*not* stick by default, so an accidental close doesn't lock the tour out for good
+(and you aren't fighting localStorage while iterating on it). Set
+`persistOnSkip: true` on the config for the "dismissed once, gone forever"
+behaviour.
 
 ```ts
 orchestrator.startIfNotCompleted(appOnboarding); // start unless already seen
@@ -224,8 +238,13 @@ orchestrator.autoStart(appOnboarding);           // honours config.startImmediat
 orchestrator.reset(appOnboarding);               // show it again
 ```
 
-Set `persist: false` on the config to opt out. Swap the backend by providing
-`ONBOARDING_STORAGE`.
+Set `persist: false` on the config to opt out of persistence entirely (handy while
+authoring a tour). Swap the backend by providing `ONBOARDING_STORAGE`.
+
+Note that `start()` ignores persistence by design — it always runs the tour. Only
+`startIfNotCompleted()` and `autoStart()` consult it, so a "replay" button needs
+nothing more than `start(cfg)`; calling `reset(cfg)` first would also clear the
+completion flag and let `autoStart` fire again on the next load.
 
 ## Multiple tours
 
