@@ -16,8 +16,12 @@ that nobody dares to delete a year later.
 `ngx-onboarding-flow` keeps it out. The entire flow is one typed `OnboardingConfig`,
 and an async engine coordinates the transitions — waiting for your business events,
 driving the router, waiting for elements to appear after loaders, re-anchoring when
-a re-render tears the highlighted element away. Your components just emit the domain
-events they were emitting anyway. **No tour code in your components.**
+a re-render tears the highlighted element away.
+
+What your components contribute is one line where the real action happens —
+`bus.emit('PROJECT_CREATED', project)` — a domain event, not a tour instruction.
+**No tour logic in your components:** no step indices, no flags, no subscriptions,
+nothing that changes when you reorder the tour.
 
 ```ts
 export const tour: OnboardingConfig = {
