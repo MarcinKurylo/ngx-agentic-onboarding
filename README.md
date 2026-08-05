@@ -71,11 +71,24 @@ commands:
 
 Then just ask for a tour ("add onboarding to my app") and Claude runs the skill, or
 invoke it explicitly as `/ngx-onboarding-flow:onboarding-author`. The plugin also
-ships the `/onboarding` shortcut. No pinned `version`, so it tracks `main` —
-`/plugin update` pulls the latest.
+ships a command, `/ngx-onboarding-flow:onboarding`, which takes the flow as an
+argument. No pinned `version`, so it tracks `main` — `/plugin update` pulls the
+latest, and there is nothing to copy into `~/.claude` by hand.
 
-Installing it is the whole distribution story: there is nothing to copy into
-`~/.claude` by hand, and nothing to keep in sync afterwards.
+### Using a different assistant
+
+The skill is a plain markdown procedure — nothing in it is Claude-specific. Copy
+**[`SKILL.md`](./.claude/skills/onboarding-author/SKILL.md)** into whatever your
+tool reads: `.github/copilot-instructions.md`, `.cursor/rules/`, or straight into
+a chat window.
+
+The one thing that doesn't transfer is the *distribution*. A Claude Code plugin
+installs once and is available in every project you open; Copilot and Cursor read
+instruction files **per repository**, so their users copy the procedure into each
+project themselves. That's a difference in what the tools offer, not a preference
+of ours — the file is the same either way, and it's worth reading before you trust
+any assistant with a tour: it's where the `@defer` deadlock and the CDK version
+gate are written down.
 
 <details><summary>Layout &amp; validation</summary>
 
