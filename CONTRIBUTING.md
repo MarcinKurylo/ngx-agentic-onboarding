@@ -65,8 +65,11 @@ consequential:
 - **`compat-matrix.yml`** (`workflow_dispatch`) compiles a fresh consumer app
   against every supported Angular major, 16.2 → 22. Run it when you touch the
   public API, peer ranges, or anything version-sensitive.
-- **`release.yml`** fires on a `v*` tag. The publish step is currently
-  commented out on purpose — see the checklist inside the file.
+- **`release.yml`** fires on a `v*` tag and **publishes to npm for real**. In
+  order: the tag must match the version in the library's `package.json`, then the
+  full CI suite, then the 16.2 → 22 matrix, then `npm publish --provenance`, and
+  last the GitHub Release, whose notes are lifted from this version's section of
+  `CHANGELOG.md`. Any failure stops the chain before anything is published.
 
 ## Where things live
 

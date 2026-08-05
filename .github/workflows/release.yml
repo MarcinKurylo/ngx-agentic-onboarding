@@ -4,8 +4,8 @@ name: Release
 #
 # Pushing a tag like `v0.1.0` runs, in order: verify-tag (the tag must match the
 # library's version in package.json), the full CI suite, the Angular 16–22
-# compatibility matrix, and only then `npm publish`. Any failure stops the chain
-# before anything is published.
+# compatibility matrix, `npm publish`, and finally the GitHub Release. Any
+# failure stops the chain before anything is published.
 #
 # The release is `latest` on npm — a plain `npm i ngx-onboarding-flow` gets it.
 # For a soft launch instead, add `--tag next` to the publish command and promote
@@ -84,3 +84,64 @@ jobs:
           npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # The GitHub Release. Deliberately last: a release page must never advertise a
+  # version npm rejected, so this waits for the publish to succeed rather than
+  # running alongside it.
+  #
+  # Notes come from CHANGELOG.md, which is the file we already keep by hand — the
+  # release is a view of it, not a second thing to write and forget.
+  github-release:
+    name: GitHub Release
+    needs: [verify-tag, ci, compat, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      # The only job that writes to the repo, and only to create the release.
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Take this version's section out of the changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # Everything between this version's heading and the next one. Matching
+          # on the literal "## [x.y.z]" rather than a regex keeps the dots in the
+          # version from acting as wildcards, and the closing bracket stops
+          # 0.1.1 from matching a future 0.1.10.
+          #
+          # The oldest entry has no "next heading" to stop at, so the link
+          # definitions at the foot of the file would run into it — stop there too.
+          NOTES=$(awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { on = 1; next }
+            on && index($0, "## [") == 1 { exit }
+            on && /^\[[^]]+\]: / { exit }
+            on { print }
+          ' CHANGELOG.md | sed '/./,$!d')
+
+          # Relative links work in CHANGELOG.md but not in a release body, where
+          # they resolve against the repo root and 404.
+          NOTES=$(printf '%s\n' "$NOTES" |
+            sed "s|](\./|](https://github.com/$GITHUB_REPOSITORY/blob/main/|g")
+
+          if [ -z "$NOTES" ]; then
+            echo "::error::npm publish SUCCEEDED — $VERSION is live. Only the release notes failed: CHANGELOG.md has no '## [$VERSION]' section. Add it, then re-run this job alone."
+            exit 1
+          fi
+
+          # Written to a file, not to an output: interpolating notes into a shell
+          # argument would break on any quote or backtick a changelog can contain.
+          {
+            printf '%s\n\n' "$NOTES"
+            printf '**[%s on npm](https://www.npmjs.com/package/ngx-onboarding-flow/v/%s)** — published from this run with a signed provenance attestation.\n' \
+              "ngx-onboarding-flow@$VERSION" "$VERSION"
+          } > "$RUNNER_TEMP/notes.md"
+
+      - name: Create the release
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md"
+        env:
+          GH_TOKEN: ${{ github.token }}
