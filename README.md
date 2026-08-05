@@ -1,6 +1,8 @@
 # ngx-onboarding-flow
 
+[![npm](https://img.shields.io/npm/v/ngx-onboarding-flow?color=cb3837&logo=npm)](https://www.npmjs.com/package/ngx-onboarding-flow)
 [![CI](https://github.com/MarcinKurylo/ngx-onboarding-flow/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcinKurylo/ngx-onboarding-flow/actions/workflows/ci.yml)
+[![Angular](https://img.shields.io/badge/Angular-16.2%20%E2%80%93%2022-dd0031)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Live demo](https://img.shields.io/badge/demo-live-6f42c1)](https://marcinkurylo.github.io/ngx-onboarding-flow/)
 
@@ -32,10 +34,17 @@ export const tour: OnboardingConfig = {
 ```
 
 That object *is* the tour. Angular 16.2 through 22; the overlay is painted with a
-slimmed [Driver.js](https://driverjs.com).
+slimmed [Driver.js](https://driverjs.com). About 14 kB gzipped, plus 7 kB for
+Driver.js.
+
+```bash
+npm i ngx-onboarding-flow driver.js
+```
 
 ▶ **[Live demo](https://marcinkurylo.github.io/ngx-onboarding-flow/)** — four
 independent tours over a realistic async app (loaders, a modal, routing and CDK overlays).
+📦 **[Package on npm](https://www.npmjs.com/package/ngx-onboarding-flow)** —
+published from CI with a signed provenance attestation.
 
 ## You don't have to write that config by hand
 
@@ -87,6 +96,8 @@ invoke it explicitly as `/ngx-onboarding-flow:onboarding-author`. No pinned
   resilience, the CDK-overlay caveat. Start here.
 - **[API reference](./docs/api/)** — every export, signature and option,
   generated from the source and checked in CI, so it can't drift.
+- **[npm](https://www.npmjs.com/package/ngx-onboarding-flow)** — released versions
+  and their provenance. **[Changelog](./CHANGELOG.md)** for what changed between them.
 
 ## Repository layout
 
