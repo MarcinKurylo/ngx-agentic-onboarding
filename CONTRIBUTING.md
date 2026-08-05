@@ -1,8 +1,8 @@
 # Contributing
 
-Thanks for looking. This is a small, opinionated library — issues and PRs are
-welcome, and the notes below cover the two or three things about this repo that
-aren't obvious from the file tree.
+A config-driven onboarding engine for Angular, kept small on purpose: injectable
+services, no components. Issues and PRs are welcome — the notes below cover what
+isn't obvious from the file tree.
 
 ## The one thing that will trip you up
 
@@ -86,13 +86,15 @@ it's deliberately explicit, so a new export is a conscious act.
 `.claude/skills/onboarding-author`. Edit the canonical file; don't create a second
 copy under `plugins/` to keep them "in sync".
 
-## Scope
+## Why there are no components
 
-The library ships no components on purpose — the popover UI is a swappable seam
-(`ONBOARDING_RENDERER`), and the compiled package declaring only injectables is
-what lets one build serve Angular 16.2 through 22. PRs adding components to the
-public surface are a hard sell; a renderer implementation in your own app is the
-supported path.
+Worth knowing before you plan a change to the public surface: the package ships
+injectables only, and that is what lets a single build serve Angular 16.2 through
+22 — a compiled component would pin it to a much narrower range.
+
+The popover UI is a swappable seam instead. Implement `OnboardingRenderer`, bind it
+to the `ONBOARDING_RENDERER` token, and you own the markup entirely while the
+orchestrator keeps driving events, routing and async DOM.
 
 ## Changelog
 

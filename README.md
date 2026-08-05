@@ -6,22 +6,19 @@
 
 **Describe the whole tour once, as data. The engine handles the async.**
 
-A product tour is easy to fake and hard to ship. The fake one walks a static page,
-selector by selector. The real one has to wait for a list to finish loading, follow
+Walking a static page is easy. A real tour has to wait for a list to load, follow
 the user into a modal, change route halfway through, and pause until they actually
-click *Save*. That's the point where tour logic starts leaking into the app: a flag
-in a service, a subscription in a component, an `if (tour.step === 4)` in a template
-that nobody dares to delete a year later.
+click *Save* — and that is where tour logic starts leaking into the app, as flags in
+services, subscriptions in components, and step numbers hard-coded in templates.
 
 `ngx-onboarding-flow` keeps it out. The entire flow is one typed `OnboardingConfig`,
 and an async engine coordinates the transitions — waiting for your business events,
 driving the router, waiting for elements to appear after loaders, re-anchoring when
 a re-render tears the highlighted element away.
 
-What your components contribute is one line where the real action happens —
-`bus.emit('PROJECT_CREATED', project)` — a domain event, not a tour instruction.
-**No tour logic in your components:** no step indices, no flags, no subscriptions,
-nothing that changes when you reorder the tour.
+Your components contribute one line where the real action happens —
+`bus.emit('PROJECT_CREATED', project)`. **No tour logic in them:** no step indices,
+no flags, no subscriptions, nothing that changes when you reorder the tour.
 
 ```ts
 export const tour: OnboardingConfig = {

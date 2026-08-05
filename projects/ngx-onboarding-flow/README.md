@@ -2,17 +2,22 @@
 
 **Describe the whole tour once, as data. The engine handles the async.**
 
-A product tour is easy to fake and hard to ship. The real one waits for a list to
-finish loading, follows the user into a modal, changes route halfway through, and
-pauses until they actually click *Save* — which is how tour logic ends up smeared
-across components. This library keeps it out: the entire flow is one typed
-`OnboardingConfig`, and an async engine coordinates the transitions — waiting for
-your business events, driving the router, waiting for elements to appear after
-loaders — then paints the overlay with a slimmed [Driver.js](https://driverjs.com).
-Config-driven, event-driven, Angular 16.2–22. Your components contribute one line
-where the real action happens — `bus.emit('SAVED', payload)`, a domain event rather
-than a tour instruction. **No tour logic in your components:** no step indices, no
-flags, no subscriptions, nothing that changes when you reorder the tour.
+The whole flow is one typed `OnboardingConfig`. An async engine coordinates the
+transitions — waiting for your business events, driving the router, waiting for
+elements to appear after loaders, recovering when a re-render tears the highlighted
+element away — and paints the overlay with a slimmed
+[Driver.js](https://driverjs.com).
+
+Your components contribute one line where the real action happens —
+`bus.emit('SAVED', payload)`. **No tour logic in them:** no step indices, no flags,
+no subscriptions.
+
+Config-driven, event-driven, Angular 16.2–22. About 14 kB gzipped, plus 7 kB for
+Driver.js.
+
+> The narrative version, with the companion Claude Code skill that writes these
+> configs for you, is in the
+> [project README](https://github.com/MarcinKurylo/ngx-onboarding-flow#readme).
 
 ▶ **[Live demo](https://marcinkurylo.github.io/ngx-onboarding-flow/)** — four
 independent tours over a realistic async app.
